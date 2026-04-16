@@ -130,7 +130,7 @@ tailwind.config = {
   .prod-card:hover::before { opacity:1; }
 
   .prod-img-wrap {
-    position:relative;overflow:hidden;background:#16161f;
+    position:relative;overflow:hidden;background:#16161f;cursor:pointer;
   }
   .prod-img-wrap img {
     width:100%;height:260px;object-fit:cover;
@@ -229,7 +229,6 @@ tailwind.config = {
   .cat-scroll::-webkit-scrollbar { display:none; }
   .cat-scroll { -ms-overflow-style:none;scrollbar-width:none; }
 
-  /* Skeleton loading */
   .skeleton {
     background:linear-gradient(90deg,#16161f 25%,#1c1c28 50%,#16161f 75%);
     background-size:200% 100%;animation:skeletonPulse 1.5s ease infinite;
@@ -412,7 +411,7 @@ tailwind.config = {
 
       <div class="prod-card fade-up" style="animation-delay:<?= $delay ?>s">
 
-        <div class="prod-img-wrap">
+        <a href="product_detail.php?id=<?= $product['id'] ?>" class="prod-img-wrap block">
           <img
             src="<?= $imgPath ?>"
             alt="<?= htmlspecialchars($product['product_name']) ?>"
@@ -421,7 +420,7 @@ tailwind.config = {
           <span class="cat-badge">
             <i class="fa-solid fa-folder text-[8px] mr-1"></i><?= htmlspecialchars($product['category_name']) ?>
           </span>
-        </div>
+        </a>
 
         <div class="p-5 relative z-10">
 
@@ -543,57 +542,38 @@ tailwind.config = {
 <!-- ========== SCRIPTS ========== -->
 <script>
 
-/* ===== CATEGORY AJAX FILTER — NO RELOAD ===== */
+/* ===== CATEGORY AJAX FILTER ===== */
 let currentCat = <?= $active_cat ?>;
 
 function loadCategory(catId) {
   if (catId === currentCat) return;
   currentCat = catId;
 
-  const grid = document.getElementById('productsGrid');
-  const title = document.getElementById('sectionTitle');
-  const countEl = document.getElementById('sectionCount');
-  const clearBtn = document.getElementById('clearFilter');
+  var grid = document.getElementById('productsGrid');
+  var title = document.getElementById('sectionTitle');
+  var countEl = document.getElementById('sectionCount');
+  var clearBtn = document.getElementById('clearFilter');
 
-  /* Update active pill */
   document.querySelectorAll('#catBar .cat-pill').forEach(function(pill) {
     pill.classList.toggle('active', parseInt(pill.dataset.cat) === catId);
   });
 
-  /* Show/hide clear filter */
   clearBtn.classList.toggle('hidden', catId === 0);
 
-  /* Show skeleton loading */
+  /* Skeleton loading */
   grid.innerHTML = '';
-  for (let i = 0; i < 4; i++) {
-    grid.innerHTML += '<div class="rounded-2xl overflow-hidden border border-white/[0.04] bg-[#101018]">' +
-      '<div class="skeleton" style="height:260px"></div>' +
-      '<div class="p-5 space-y-3">' +
-        '<div class="skeleton h-4 w-3/4 rounded-lg"></div>' +
-        '<div class="skeleton h-3 w-full rounded-lg"></div>' +
-        '<div class="skeleton h-3 w-5/6 rounded-lg"></div>' +
-        '<div class="pt-4 mt-4 border-t border-white/5 flex justify-between items-end">' +
-          '<div><div class="skeleton h-3 w-12 mb-2 rounded-lg"></div><div class="skeleton h-6 w-20 rounded-lg"></div></div>' +
-          '<div class="flex gap-2"><div class="skeleton w-10 h-10 rounded-xl"></div><div class="skeleton w-10 h-10 rounded-xl"></div></div>' +
-        '</div></div></div>';
+  for (var i = 0; i < 4; i++) {
+    grid.innerHTML += '<div class="rounded-2xl overflow-hidden border border-white/[0.04] bg-[#101018]"><div class="skeleton" style="height:260px"></div><div class="p-5 space-y-3"><div class="skeleton h-4 w-3/4 rounded-lg"></div><div class="skeleton h-3 w-full rounded-lg"></div><div class="skeleton h-3 w-5/6 rounded-lg"></div><div class="pt-4 mt-4 border-t border-white/5 flex justify-between items-end"><div><div class="skeleton h-3 w-12 mb-2 rounded-lg"></div><div class="skeleton h-6 w-20 rounded-lg"></div></div><div class="flex gap-2"><div class="skeleton w-10 h-10 rounded-xl"></div><div class="skeleton w-10 h-10 rounded-xl"></div></div></div></div></div>';
   }
 
-  /* Smooth scroll to products */
   document.getElementById('products').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  /* Fetch products via AJAX */
   fetch('fetch_products.php?cat_id=' + catId)
     .then(function(r) { return r.json(); })
     .then(function(data) {
 
       if (data.html === 'EMPTY') {
-        grid.innerHTML =
-          '<div class="text-center py-20 col-span-full">' +
-            '<div class="empty-icon inline-block mb-5"><div class="w-20 h-20 rounded-2xl bg-surface-700 flex items-center justify-center mx-auto"><i class="fa-solid fa-box-open text-white/10 text-3xl"></i></div></div>' +
-            '<h3 class="text-lg font-bold text-white/40">No Products Found</h3>' +
-            '<p class="text-sm text-white/20 mt-2">This category doesn\'t have any products yet.</p>' +
-            '<button onclick="loadCategory(0)" class="inline-flex items-center gap-2 mt-5 text-sm font-semibold text-gold-400 hover:text-gold-300 transition bg-transparent border-none cursor-pointer"><i class="fa-solid fa-arrow-left text-xs"></i> Browse All Products</button>' +
-          '</div>';
+        grid.innerHTML = '<div class="text-center py-20 col-span-full"><div class="empty-icon inline-block mb-5"><div class="w-20 h-20 rounded-2xl bg-surface-700 flex items-center justify-center mx-auto"><i class="fa-solid fa-box-open text-white/10 text-3xl"></i></div></div><h3 class="text-lg font-bold text-white/40">No Products Found</h3><p class="text-sm text-white/20 mt-2">This category doesn\'t have any products yet.</p><button onclick="loadCategory(0)" class="inline-flex items-center gap-2 mt-5 text-sm font-semibold text-gold-400 hover:text-gold-300 transition bg-transparent border-none cursor-pointer"><i class="fa-solid fa-arrow-left text-xs"></i> Browse All Products</button></div>';
         title.textContent = data.name;
         countEl.textContent = '0 products available';
       } else {
@@ -601,7 +581,6 @@ function loadCategory(catId) {
         title.textContent = data.name;
         countEl.textContent = data.count + ' product' + (data.count !== 1 ? 's' : '') + ' available';
 
-        /* Re-trigger fade animations for new cards */
         grid.querySelectorAll('.fade-up').forEach(function(el) {
           el.style.animationPlayState = 'paused';
           var obs = new IntersectionObserver(function(entries) {
@@ -620,12 +599,10 @@ function loadCategory(catId) {
       grid.innerHTML = '<p class="text-center text-red-400 py-20 col-span-full">Failed to load products.</p>';
     });
 
-  /* Update URL without page reload */
   var url = catId === 0 ? 'index.php' : 'index.php?cat_id=' + catId;
   history.pushState({ cat_id: catId }, '', url);
 }
 
-/* Browser back/forward buttons */
 window.addEventListener('popstate', function(e) {
   var catId = (e.state && e.state.cat_id !== undefined) ? e.state.cat_id : 0;
   currentCat = -1;
@@ -654,7 +631,6 @@ document.querySelectorAll('a[href^="#"]').forEach(function(link) {
   });
 });
 
-/* Navbar on scroll */
 window.addEventListener('scroll', function() {
   var nav = document.querySelector('.nav-blur');
   if (window.scrollY > 50) {
@@ -666,7 +642,6 @@ window.addEventListener('scroll', function() {
   }
 });
 
-/* Fade-in observer */
 var observer = new IntersectionObserver(function(entries) {
   entries.forEach(function(entry) {
     if (entry.isIntersecting) entry.target.style.animationPlayState = 'running';
