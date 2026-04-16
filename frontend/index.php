@@ -36,7 +36,7 @@ if ($active_cat > 0) {
 <title>Beats Shop — Premium Audio</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family+Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <script>
@@ -69,7 +69,6 @@ tailwind.config = {
   ::-webkit-scrollbar-thumb { background:#2a2a3a; border-radius:99px; }
   ::-webkit-scrollbar-thumb:hover { background:#3a3a4a; }
 
-  /* Hero animated gradient orbs */
   .hero-orb {
     position:absolute;border-radius:50%;filter:blur(100px);opacity:0.4;
     animation:orbFloat 10s ease-in-out infinite alternate;
@@ -89,7 +88,6 @@ tailwind.config = {
     100% { transform:translate(-20px,20px) scale(0.95); }
   }
 
-  /* Navbar blur */
   .nav-blur {
     background:rgba(10,10,15,0.75);
     backdrop-filter:blur(20px);
@@ -97,12 +95,11 @@ tailwind.config = {
     border-bottom:1px solid rgba(255,255,255,0.04);
   }
 
-  /* Category pill */
   .cat-pill {
     padding:8px 20px;border-radius:99px;font-size:0.8rem;font-weight:600;
     border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);
     text-decoration:none;white-space:nowrap;transition:all 0.25s ease;
-    background:transparent;
+    background:transparent;cursor:pointer;display:inline-flex;align-items:center;
   }
   .cat-pill:hover {
     border-color:rgba(251,191,36,0.3);color:#fbbf24;
@@ -114,7 +111,6 @@ tailwind.config = {
     box-shadow:0 4px 16px -4px rgba(251,191,36,0.4);
   }
 
-  /* Product card */
   .prod-card {
     background:#101018;border-radius:20px;overflow:hidden;
     border:1px solid rgba(255,255,255,0.04);
@@ -133,7 +129,6 @@ tailwind.config = {
   }
   .prod-card:hover::before { opacity:1; }
 
-  /* Product image */
   .prod-img-wrap {
     position:relative;overflow:hidden;background:#16161f;
   }
@@ -149,7 +144,6 @@ tailwind.config = {
     background:linear-gradient(to top,#101018,transparent);pointer-events:none;
   }
 
-  /* Category badge on card */
   .cat-badge {
     position:absolute;top:12px;left:12px;z-index:2;
     background:rgba(10,10,15,0.7);backdrop-filter:blur(8px);
@@ -157,7 +151,6 @@ tailwind.config = {
     color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.06);
   }
 
-  /* Cart button shimmer */
   .btn-cart {
     background:linear-gradient(135deg,#fbbf24,#f59e0b);
     color:#0a0a0f;font-weight:700;border:none;border-radius:12px;
@@ -175,7 +168,6 @@ tailwind.config = {
     transform:translateY(-1px);
   }
 
-  /* View button */
   .btn-view {
     background:transparent;border:1px solid rgba(255,255,255,0.1);
     color:rgba(255,255,255,0.6);border-radius:12px;font-weight:600;
@@ -187,14 +179,12 @@ tailwind.config = {
     color:#fff;
   }
 
-  /* Fade in */
   .fade-up {
     opacity:0;transform:translateY(20px);
     animation:fadeUp 0.6s cubic-bezier(.4,0,.2,1) forwards;
   }
   @keyframes fadeUp { to { opacity:1;transform:translateY(0); } }
 
-  /* Hero text shimmer */
   .text-shimmer {
     background:linear-gradient(90deg,#fbbf24,#fde68a,#fbbf24);
     background-size:200% auto;
@@ -205,7 +195,6 @@ tailwind.config = {
   }
   @keyframes shimmer { to { background-position:200% center; } }
 
-  /* Hero floating image */
   .hero-img {
     animation:heroFloat 4s ease-in-out infinite;
   }
@@ -214,14 +203,12 @@ tailwind.config = {
     50% { transform:translateY(-15px); }
   }
 
-  /* Footer links */
   .footer-link {
     color:rgba(255,255,255,0.35);font-size:0.85rem;
     text-decoration:none;transition:color 0.2s;display:block;padding:4px 0;
   }
   .footer-link:hover { color:#fbbf24; }
 
-  /* Cart badge pulse */
   .cart-pulse {
     animation:cartPop 0.3s cubic-bezier(.4,0,.2,1);
   }
@@ -231,7 +218,6 @@ tailwind.config = {
     100% { transform:scale(1); }
   }
 
-  /* Empty state */
   .empty-icon {
     animation:emptyBounce 2s ease-in-out infinite;
   }
@@ -240,9 +226,15 @@ tailwind.config = {
     50% { transform:translateY(-8px); }
   }
 
-  /* Hide scrollbar for category bar */
   .cat-scroll::-webkit-scrollbar { display:none; }
   .cat-scroll { -ms-overflow-style:none;scrollbar-width:none; }
+
+  /* Skeleton loading */
+  .skeleton {
+    background:linear-gradient(90deg,#16161f 25%,#1c1c28 50%,#16161f 75%);
+    background-size:200% 100%;animation:skeletonPulse 1.5s ease infinite;
+  }
+  @keyframes skeletonPulse { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 </style>
 
 </head>
@@ -254,7 +246,6 @@ tailwind.config = {
 
   <div class="max-w-7xl mx-auto flex items-center justify-between">
 
-    <!-- Logo -->
     <a href="index.php" class="flex items-center gap-3 text-decoration-none">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
         <i class="fa-solid fa-headphones text-surface-900 text-sm"></i>
@@ -262,7 +253,6 @@ tailwind.config = {
       <span class="text-lg font-extrabold text-white tracking-tight">Beats<span class="text-gold-400">Shop</span></span>
     </a>
 
-    <!-- Nav Links (Desktop) -->
     <div class="hidden md:flex items-center gap-8">
       <a href="index.php" class="text-sm font-medium text-white hover:text-gold-400 transition">Home</a>
       <a href="#products" class="text-sm font-medium text-white/50 hover:text-gold-400 transition">Products</a>
@@ -270,32 +260,23 @@ tailwind.config = {
       <a href="#" class="text-sm font-medium text-white/50 hover:text-gold-400 transition">Contact</a>
     </div>
 
-    <!-- Right Actions -->
     <div class="flex items-center gap-3">
-
-      <!-- Search Toggle -->
       <button onclick="toggleSearch()" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition text-white/60 hover:text-white">
         <i class="fa-solid fa-magnifying-glass text-sm"></i>
       </button>
-
-      <!-- Cart -->
       <a href="cart.php" class="relative w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition text-white/60 hover:text-white">
         <i class="fa-solid fa-bag-shopping text-sm"></i>
         <?php if ($count > 0) { ?>
           <span class="cart-pulse absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 text-surface-900 text-[10px] font-extrabold flex items-center justify-center"><?= $count ?></span>
         <?php } ?>
       </a>
-
-      <!-- Mobile Menu -->
       <button onclick="toggleMobileMenu()" class="md:hidden w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition text-white/60">
         <i class="fa-solid fa-bars text-sm"></i>
       </button>
-
     </div>
 
   </div>
 
-  <!-- Search Bar (Hidden by default) -->
   <div id="searchBar" class="hidden max-w-7xl mx-auto mt-4">
     <div class="relative">
       <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-sm"></i>
@@ -303,7 +284,6 @@ tailwind.config = {
     </div>
   </div>
 
-  <!-- Mobile Menu -->
   <div id="mobileMenu" class="hidden md:hidden mt-4 pb-2 border-t border-white/5 pt-4">
     <a href="index.php" class="block py-2.5 text-sm font-medium text-white">Home</a>
     <a href="#products" class="block py-2.5 text-sm font-medium text-white/50">Products</a>
@@ -317,46 +297,32 @@ tailwind.config = {
 <!-- ========== HERO ========== -->
 <section class="relative min-h-[92vh] flex items-center overflow-hidden pt-20">
 
-  <!-- Orbs -->
   <div class="hero-orb hero-orb-1"></div>
   <div class="hero-orb hero-orb-2"></div>
 
   <div class="max-w-7xl mx-auto px-6 lg:px-10 w-full">
-
     <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 
-      <!-- Text -->
       <div class="flex-1 text-center lg:text-left fade-up">
-
         <div class="inline-flex items-center gap-2 bg-gold-500/10 border border-gold-500/20 rounded-full px-4 py-1.5 mb-6">
           <span class="w-2 h-2 rounded-full bg-gold-400 animate-pulse"></span>
           <span class="text-xs font-semibold text-gold-400 uppercase tracking-wider">New Collection 2025</span>
         </div>
-
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight">
           Next Level<br>
           <span class="text-shimmer">Sound Experience</span>
         </h1>
-
         <p class="text-white/40 mt-5 text-base lg:text-lg max-w-md mx-auto lg:mx-0 leading-relaxed">
           Premium headphones engineered for deep bass, crystal clarity, and all-day comfort. Feel every beat.
         </p>
-
         <div class="flex items-center gap-4 mt-8 justify-center lg:justify-start">
-
           <a href="#products" class="btn-cart px-7 py-3.5 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-headphones text-xs"></i>
-            Shop Now
+            <i class="fa-solid fa-headphones text-xs"></i> Shop Now
           </a>
-
           <a href="#" class="btn-view px-7 py-3.5 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-play text-[10px]"></i>
-            Watch Video
+            <i class="fa-solid fa-play text-[10px]"></i> Watch Video
           </a>
-
         </div>
-
-        <!-- Stats -->
         <div class="flex items-center gap-8 mt-12 justify-center lg:justify-start">
           <div>
             <p class="text-2xl font-extrabold text-white">50K+</p>
@@ -373,10 +339,8 @@ tailwind.config = {
             <p class="text-xs text-white/30 mt-0.5">Products</p>
           </div>
         </div>
-
       </div>
 
-      <!-- Image -->
       <div class="flex-1 flex justify-center fade-up" style="animation-delay:0.15s">
         <div class="relative">
           <div class="absolute inset-0 bg-gradient-to-br from-gold-400/20 to-transparent rounded-full blur-3xl scale-75"></div>
@@ -385,9 +349,7 @@ tailwind.config = {
       </div>
 
     </div>
-
   </div>
-
 </section>
 
 
@@ -400,26 +362,24 @@ tailwind.config = {
       <h2 class="text-sm font-bold text-white/80 uppercase tracking-wider">
         <i class="fa-solid fa-filter text-gold-400 mr-2 text-xs"></i>Browse by Category
       </h2>
-      <?php if ($active_cat > 0) { ?>
-        <a href="index.php" class="text-xs font-medium text-gold-400 hover:text-gold-300 transition flex items-center gap-1">
-          <i class="fa-solid fa-xmark text-[10px]"></i> Clear Filter
-        </a>
-      <?php } ?>
+      <span id="clearFilter" class="<?= $active_cat > 0 ? '' : 'hidden' ?> text-xs font-medium text-gold-400 hover:text-gold-300 transition flex items-center gap-1 cursor-pointer" onclick="loadCategory(0)">
+        <i class="fa-solid fa-xmark text-[10px]"></i> Clear Filter
+      </span>
     </div>
 
-    <div class="cat-scroll flex items-center gap-3 overflow-x-auto pb-2">
+    <div class="cat-scroll flex items-center gap-3 overflow-x-auto pb-2" id="catBar">
 
-      <a href="index.php" class="cat-pill <?= $active_cat === 0 ? 'active' : '' ?>">
+      <span class="cat-pill <?= $active_cat === 0 ? 'active' : '' ?>" data-cat="0" onclick="loadCategory(0)">
         <i class="fa-solid fa-grid-2 mr-1.5 text-[10px]"></i>All
-      </a>
+      </span>
 
       <?php
         mysqli_data_seek($cat_result, 0);
         while ($cat = mysqli_fetch_assoc($cat_result)) {
       ?>
-        <a href="?cat_id=<?= $cat['id'] ?>" class="cat-pill <?= $active_cat == $cat['id'] ? 'active' : '' ?>">
+        <span class="cat-pill <?= $active_cat == $cat['id'] ? 'active' : '' ?>" data-cat="<?= $cat['id'] ?>" onclick="loadCategory(<?= $cat['id'] ?>)">
           <?= htmlspecialchars($cat['category_name']) ?>
-        </a>
+        </span>
       <?php } ?>
 
     </div>
@@ -434,19 +394,14 @@ tailwind.config = {
 
   <div class="max-w-7xl mx-auto px-6 lg:px-10">
 
-    <!-- Section Header -->
     <div class="flex items-end justify-between mb-8 fade-up">
-
       <div>
-        <h2 class="text-2xl font-extrabold text-white tracking-tight"><?= $active_cat_name ?></h2>
-        <p class="text-sm text-white/30 mt-1"><?= $product_count ?> product<?= $product_count !== 1 ? 's' : '' ?> available</p>
+        <h2 id="sectionTitle" class="text-2xl font-extrabold text-white tracking-tight"><?= $active_cat_name ?></h2>
+        <p id="sectionCount" class="text-sm text-white/30 mt-1"><?= $product_count ?> product<?= $product_count !== 1 ? 's' : '' ?> available</p>
       </div>
-
     </div>
 
-    <?php if ($product_count > 0) { ?>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
       <?php
         $delay = 0;
@@ -457,7 +412,6 @@ tailwind.config = {
 
       <div class="prod-card fade-up" style="animation-delay:<?= $delay ?>s">
 
-        <!-- Image -->
         <div class="prod-img-wrap">
           <img
             src="<?= $imgPath ?>"
@@ -469,7 +423,6 @@ tailwind.config = {
           </span>
         </div>
 
-        <!-- Body -->
         <div class="p-5 relative z-10">
 
           <h3 class="text-sm font-bold text-white leading-snug"><?= htmlspecialchars($product['product_name']) ?></h3>
@@ -504,26 +457,7 @@ tailwind.config = {
 
     </div>
 
-    <?php } else { ?>
-
-    <!-- Empty State -->
-    <div class="text-center py-20 fade-up">
-      <div class="empty-icon inline-block mb-5">
-        <div class="w-20 h-20 rounded-2xl bg-surface-700 flex items-center justify-center mx-auto">
-          <i class="fa-solid fa-box-open text-white/10 text-3xl"></i>
-        </div>
-      </div>
-      <h3 class="text-lg font-bold text-white/40">No Products Found</h3>
-      <p class="text-sm text-white/20 mt-2">This category doesn't have any products yet.</p>
-      <a href="index.php" class="inline-flex items-center gap-2 mt-5 text-sm font-semibold text-gold-400 hover:text-gold-300 transition">
-        <i class="fa-solid fa-arrow-left text-xs"></i> Browse All Products
-      </a>
-    </div>
-
-    <?php } ?>
-
   </div>
-
 </section>
 
 
@@ -548,7 +482,6 @@ tailwind.config = {
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
 
-      <!-- Brand -->
       <div class="col-span-2 md:col-span-1">
         <a href="index.php" class="flex items-center gap-3 mb-4 text-decoration-none">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center">
@@ -558,22 +491,13 @@ tailwind.config = {
         </a>
         <p class="text-xs text-white/25 leading-relaxed">Premium audio gear for those who demand the best. Engineered with passion.</p>
         <div class="flex items-center gap-3 mt-5">
-          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition">
-            <i class="fa-brands fa-facebook-f text-xs"></i>
-          </a>
-          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition">
-            <i class="fa-brands fa-instagram text-xs"></i>
-          </a>
-          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition">
-            <i class="fa-brands fa-twitter text-xs"></i>
-          </a>
-          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition">
-            <i class="fa-brands fa-youtube text-xs"></i>
-          </a>
+          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition"><i class="fa-brands fa-facebook-f text-xs"></i></a>
+          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition"><i class="fa-brands fa-instagram text-xs"></i></a>
+          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition"><i class="fa-brands fa-twitter text-xs"></i></a>
+          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition"><i class="fa-brands fa-youtube text-xs"></i></a>
         </div>
       </div>
 
-      <!-- Quick Links -->
       <div>
         <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-4">Quick Links</p>
         <a href="index.php" class="footer-link">Home</a>
@@ -582,7 +506,6 @@ tailwind.config = {
         <a href="#" class="footer-link">About Us</a>
       </div>
 
-      <!-- Categories -->
       <div>
         <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-4">Categories</p>
         <?php
@@ -591,11 +514,10 @@ tailwind.config = {
           while ($cat = mysqli_fetch_assoc($cat_result) && $catCount < 5) {
             $catCount++;
         ?>
-          <a href="?cat_id=<?= $cat['id'] ?>" class="footer-link"><?= htmlspecialchars($cat['category_name']) ?></a>
+          <span class="footer-link cursor-pointer" onclick="loadCategory(<?= $cat['id'] ?>);document.getElementById('products').scrollIntoView({behavior:'smooth'})"><?= htmlspecialchars($cat['category_name']) ?></span>
         <?php } ?>
       </div>
 
-      <!-- Contact -->
       <div>
         <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-4">Contact</p>
         <p class="footer-link"><i class="fa-solid fa-envelope text-[10px] mr-2 text-gold-400/50"></i>hello@beatsshop.com</p>
@@ -605,7 +527,6 @@ tailwind.config = {
 
     </div>
 
-    <!-- Bottom -->
     <div class="border-t border-white/[0.03] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
       <p class="text-xs text-white/20">&copy; <?= date('Y') ?> BeatsShop. All rights reserved.</p>
       <div class="flex items-center gap-4">
@@ -622,36 +543,120 @@ tailwind.config = {
 <!-- ========== SCRIPTS ========== -->
 <script>
 
-/* Search Toggle */
-function toggleSearch() {
-  const bar = document.getElementById('searchBar');
-  bar.classList.toggle('hidden');
-  if (!bar.classList.contains('hidden')) {
-    bar.querySelector('input').focus();
+/* ===== CATEGORY AJAX FILTER — NO RELOAD ===== */
+let currentCat = <?= $active_cat ?>;
+
+function loadCategory(catId) {
+  if (catId === currentCat) return;
+  currentCat = catId;
+
+  const grid = document.getElementById('productsGrid');
+  const title = document.getElementById('sectionTitle');
+  const countEl = document.getElementById('sectionCount');
+  const clearBtn = document.getElementById('clearFilter');
+
+  /* Update active pill */
+  document.querySelectorAll('#catBar .cat-pill').forEach(function(pill) {
+    pill.classList.toggle('active', parseInt(pill.dataset.cat) === catId);
+  });
+
+  /* Show/hide clear filter */
+  clearBtn.classList.toggle('hidden', catId === 0);
+
+  /* Show skeleton loading */
+  grid.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    grid.innerHTML += '<div class="rounded-2xl overflow-hidden border border-white/[0.04] bg-[#101018]">' +
+      '<div class="skeleton" style="height:260px"></div>' +
+      '<div class="p-5 space-y-3">' +
+        '<div class="skeleton h-4 w-3/4 rounded-lg"></div>' +
+        '<div class="skeleton h-3 w-full rounded-lg"></div>' +
+        '<div class="skeleton h-3 w-5/6 rounded-lg"></div>' +
+        '<div class="pt-4 mt-4 border-t border-white/5 flex justify-between items-end">' +
+          '<div><div class="skeleton h-3 w-12 mb-2 rounded-lg"></div><div class="skeleton h-6 w-20 rounded-lg"></div></div>' +
+          '<div class="flex gap-2"><div class="skeleton w-10 h-10 rounded-xl"></div><div class="skeleton w-10 h-10 rounded-xl"></div></div>' +
+        '</div></div></div>';
   }
+
+  /* Smooth scroll to products */
+  document.getElementById('products').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  /* Fetch products via AJAX */
+  fetch('fetch_products.php?cat_id=' + catId)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+
+      if (data.html === 'EMPTY') {
+        grid.innerHTML =
+          '<div class="text-center py-20 col-span-full">' +
+            '<div class="empty-icon inline-block mb-5"><div class="w-20 h-20 rounded-2xl bg-surface-700 flex items-center justify-center mx-auto"><i class="fa-solid fa-box-open text-white/10 text-3xl"></i></div></div>' +
+            '<h3 class="text-lg font-bold text-white/40">No Products Found</h3>' +
+            '<p class="text-sm text-white/20 mt-2">This category doesn\'t have any products yet.</p>' +
+            '<button onclick="loadCategory(0)" class="inline-flex items-center gap-2 mt-5 text-sm font-semibold text-gold-400 hover:text-gold-300 transition bg-transparent border-none cursor-pointer"><i class="fa-solid fa-arrow-left text-xs"></i> Browse All Products</button>' +
+          '</div>';
+        title.textContent = data.name;
+        countEl.textContent = '0 products available';
+      } else {
+        grid.innerHTML = data.html;
+        title.textContent = data.name;
+        countEl.textContent = data.count + ' product' + (data.count !== 1 ? 's' : '') + ' available';
+
+        /* Re-trigger fade animations for new cards */
+        grid.querySelectorAll('.fade-up').forEach(function(el) {
+          el.style.animationPlayState = 'paused';
+          var obs = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+              if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+                obs.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.1 });
+          obs.observe(el);
+        });
+      }
+    })
+    .catch(function() {
+      grid.innerHTML = '<p class="text-center text-red-400 py-20 col-span-full">Failed to load products.</p>';
+    });
+
+  /* Update URL without page reload */
+  var url = catId === 0 ? 'index.php' : 'index.php?cat_id=' + catId;
+  history.pushState({ cat_id: catId }, '', url);
 }
 
-/* Mobile Menu */
+/* Browser back/forward buttons */
+window.addEventListener('popstate', function(e) {
+  var catId = (e.state && e.state.cat_id !== undefined) ? e.state.cat_id : 0;
+  currentCat = -1;
+  loadCategory(catId);
+});
+
+
+/* ===== SEARCH & MENU ===== */
+function toggleSearch() {
+  var bar = document.getElementById('searchBar');
+  bar.classList.toggle('hidden');
+  if (!bar.classList.contains('hidden')) bar.querySelector('input').focus();
+}
 function toggleMobileMenu() {
   document.getElementById('mobileMenu').classList.toggle('hidden');
 }
 
-/* Smooth scroll for anchor links */
-document.querySelectorAll('a[href^="#"]').forEach(link => {
+document.querySelectorAll('a[href^="#"]').forEach(function(link) {
   link.addEventListener('click', function(e) {
-    const target = document.querySelector(this.getAttribute('href'));
+    var target = document.querySelector(this.getAttribute('href'));
     if (target) {
       e.preventDefault();
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      /* Close mobile menu */
       document.getElementById('mobileMenu').classList.add('hidden');
     }
   });
 });
 
-/* Navbar background on scroll */
+/* Navbar on scroll */
 window.addEventListener('scroll', function() {
-  const nav = document.querySelector('.nav-blur');
+  var nav = document.querySelector('.nav-blur');
   if (window.scrollY > 50) {
     nav.style.borderBottomColor = 'rgba(255,255,255,0.06)';
     nav.style.background = 'rgba(10,10,15,0.9)';
@@ -661,20 +666,16 @@ window.addEventListener('scroll', function() {
   }
 });
 
-/* Intersection Observer for fade-in */
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.style.animationPlayState = 'running';
-    }
+/* Fade-in observer */
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) entry.target.style.animationPlayState = 'running';
   });
 }, { threshold: 0.1 });
-
-document.querySelectorAll('.fade-up').forEach(el => {
+document.querySelectorAll('.fade-up').forEach(function(el) {
   el.style.animationPlayState = 'paused';
   observer.observe(el);
 });
-
 </script>
 
 </body>
