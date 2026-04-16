@@ -1,55 +1,64 @@
 <?php
-if (isset($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']); // ek baar dikhao phir hatado
-?>
-<div id="flashMsg" class="fixed top-24 right-6 z-[9999] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border max-w-sm
-    <?= $flash['type'] === 'success'
-        ? 'bg-[#101018] border-gold-500/20'
-        : 'bg-[#101018] border-red-500/20'
-    ?>"
-    style="animation: slideIn 0.4s cubic-bezier(.4,0,.2,1) forwards;"
->
+session_start();
+header('Content-Type: application/json');
 
-    <div class="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center
-        <?= $flash['type'] === 'success'
-            ? 'bg-gradient-to-br from-gold-400 to-gold-600'
-            : 'bg-gradient-to-br from-red-400 to-red-600'
-        ?>">
-        <i class="fa-solid <?= $flash['type'] === 'success' ? 'fa-check' : 'fa-xmark' ?> text-surface-900 text-sm"></i>
-    </div>
-
-    <div class="flex-1 min-w-0">
-        <p class="text-sm font-semibold text-white"><?= $flash['msg'] ?></p>
-        <?php if (!empty($flash['extra'])) { ?>
-            <p class="text-xs text-white/30 mt-0.5"><?= $flash['extra'] ?></p>
-        <?php } ?>
-    </div>
-
-    <button onclick="dismissFlash()" class="w-7 h-7 rounded-lg hover:bg-white/5 flex items-center justify-center text-white/30 hover:text-white/60 transition shrink-0">
-        <i class="fa-solid fa-xmark text-xs"></i>
-    </button>
-
-</div>
-
-<style>
-@keyframes slideIn {
-    from { opacity:0; transform:translateX(20px) scale(0.96); }
-    to { opacity:1; transform:translateX(0) scale(1); }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false]);
+    exit;
 }
-@keyframes slideOut {
-    to { opacity:0; transform:translateX(20px) scale(0.96); }
-}
-</style>
 
-<script>
-function dismissFlash() {
-    const el = document.getElementById('flashMsg');
-    if (!el) return;
-    el.style.animation = 'slideOut 0.3s ease forwards';
-    setTimeout(() => el.remove(), 300);
-}
-setTimeout(dismissFlash, 3500);
-</script>
+ $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
+ $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 1;
 
-<?php } ?>
+if ($product_id <= 0) {
+    echo json_encode(['success' => false]);
+    exit;
+}
+
+ $quantity = max(1, min(10, $quantity));
+
+include(__DIR__ . '/../backend/config/db.php');
+
+ $stmt = mysqli_prepare($conn, "SELECT id, product_name, price, image FROM products WHERE id = ?");
+mysqli_stmt_bind_param($stmt, "i", $product_id);
+mysqli_stmt_execute($stmt);
+ $result = mysqli_stmt_get_result($stmt);
+
+if (mysqli_num_rows($result) === 0) {
+    echo json_encode(['success' => false]);
+    exit;
+}
+
+ $product = mysqli_fetch_assoc($result);
+
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
+}
+
+ $found = false;
+foreach ($_SESSION['cart'] as &$item) {
+    if ($item['product_id'] == $product_id) {
+        $item['quantity'] += $quantity;
+        if ($item['quantity'] > 10) $item['quantity'] = 10;
+        $found = true;
+        break;
+    }
+}
+unset($item);
+
+if (!$found) {
+    $_SESSION['cart'][] = [
+        'product_id' => $product['id'],
+        'product_name' => $product['product_name'],
+        'price' => $product['price'],
+        'image' => $product['image'],
+        'quantity' => $quantity
+    ];
+}
+
+ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
+
+echo json_encode([
+    'success' => true,
+    'cart_count' => $cart_count
+]);

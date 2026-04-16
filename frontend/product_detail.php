@@ -1,4 +1,5 @@
 <?php
+session_start();
 include("../backend/config/db.php");
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -22,7 +23,7 @@ if (mysqli_num_rows($result) === 0) {
 /* RELATED PRODUCTS — same category, exclude current */
  $related_result = mysqli_query($conn, "
     SELECT * FROM products 
-    WHERE category_id = " . $product['category_id'] . " AND id != $id 
+    WHERE category_id = " . intval($product['category_id']) . " AND id != $id 
     ORDER BY RAND() LIMIT 4
 ");
 
@@ -76,7 +77,6 @@ tailwind.config = {
     border-bottom:1px solid rgba(255,255,255,0.04);
   }
 
-  /* Main image */
   .main-img-wrap {
     position:relative;border-radius:24px;overflow:hidden;
     background:#16161f;
@@ -92,7 +92,6 @@ tailwind.config = {
   }
   .main-img-wrap:hover img { transform:scale(1.05); }
 
-  /* Thumbnail */
   .thumb {
     width:72px;height:72px;border-radius:14px;overflow:hidden;cursor:pointer;
     border:2px solid transparent;
@@ -105,7 +104,6 @@ tailwind.config = {
     box-shadow:0 0 16px -4px rgba(251,191,36,0.3);
   }
 
-  /* Feature pill */
   .feat-pill {
     display:inline-flex;align-items:center;gap:8px;
     background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);
@@ -118,7 +116,6 @@ tailwind.config = {
     color:#fbbf24;
   }
 
-  /* Cart button */
   .btn-cart {
     background:linear-gradient(135deg,#fbbf24,#f59e0b);
     color:#0a0a0f;font-weight:700;border:none;border-radius:14px;
@@ -147,7 +144,6 @@ tailwind.config = {
     color:#fff;
   }
 
-  /* Related card */
   .rel-card {
     background:#101018;border-radius:18px;overflow:hidden;
     border:1px solid rgba(255,255,255,0.04);
@@ -164,7 +160,6 @@ tailwind.config = {
   }
   .rel-card:hover img { transform:scale(1.06); }
 
-  /* Text shimmer */
   .text-shimmer {
     background:linear-gradient(90deg,#fbbf24,#fde68a,#fbbf24);
     background-size:200% auto;
@@ -175,21 +170,18 @@ tailwind.config = {
   }
   @keyframes shimmer { to { background-position:200% center; } }
 
-  /* Fade in */
   .fade-up {
     opacity:0;transform:translateY(20px);
     animation:fadeUp 0.6s cubic-bezier(.4,0,.2,1) forwards;
   }
   @keyframes fadeUp { to { opacity:1;transform:translateY(0); } }
 
-  /* Breadcrumb link */
   .bc-link {
     color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;
     transition:color 0.2s;
   }
   .bc-link:hover { color:#fbbf24; }
 
-  /* Toast notification */
   .toast-msg {
     position:fixed;top:24px;right:24px;z-index:9999;
     background:#101018;border:1px solid rgba(251,191,36,0.2);
@@ -203,7 +195,6 @@ tailwind.config = {
     opacity:1;transform:translateY(0) scale(1);pointer-events:auto;
   }
 
-  /* Quantity buttons */
   .qty-btn {
     width:40px;height:40px;border-radius:10px;
     background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
@@ -215,7 +206,6 @@ tailwind.config = {
     color:#fbbf24;
   }
 
-  /* Tab */
   .tab-btn {
     padding:10px 20px;border-radius:10px;font-size:0.8rem;font-weight:600;
     color:rgba(255,255,255,0.35);background:transparent;
@@ -228,11 +218,9 @@ tailwind.config = {
   }
   .tab-btn:hover:not(.active) { color:rgba(255,255,255,0.6); }
 
-  /* Star rating */
   .star { color:#fbbf24; }
   .star-empty { color:#2a2a3a; }
 
-  /* Image zoom lens */
   .zoom-lens {
     position:absolute;width:150px;height:150px;
     border:2px solid rgba(251,191,36,0.4);border-radius:50%;
@@ -241,6 +229,14 @@ tailwind.config = {
     box-shadow:0 0 20px rgba(0,0,0,0.5);
   }
   .main-img-wrap:hover .zoom-lens { opacity:1; }
+
+  /* Cart badge pulse */
+  @keyframes badgePop {
+    0% { transform:scale(1); }
+    50% { transform:scale(1.4); }
+    100% { transform:scale(1); }
+  }
+  .badge-pop { animation: badgePop 0.35s ease; }
 </style>
 
 </head>
@@ -274,10 +270,10 @@ tailwind.config = {
       <a href="index.php" class="hidden sm:flex items-center gap-2 text-sm font-medium text-white/50 hover:text-white transition px-3 py-2 rounded-xl hover:bg-white/5">
         <i class="fa-solid fa-house text-xs"></i> Home
       </a>
-      <a href="cart.php" class="relative w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition text-white/60 hover:text-white">
+      <a href="cart.php" id="cartIconWrap" class="relative w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition text-white/60 hover:text-white">
         <i class="fa-solid fa-bag-shopping text-sm"></i>
         <?php if ($count > 0) { ?>
-          <span class="absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 text-surface-900 text-[10px] font-extrabold flex items-center justify-center"><?= $count ?></span>
+          <span id="cartBadge" class="absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 text-surface-900 text-[10px] font-extrabold flex items-center justify-center"><?= $count ?></span>
         <?php } ?>
       </a>
     </div>
@@ -307,7 +303,6 @@ tailwind.config = {
       <!-- LEFT — Images -->
       <div class="fade-up">
 
-        <!-- Main Image -->
         <div class="main-img-wrap aspect-square mb-4">
           <img
             id="mainImg"
@@ -315,26 +310,9 @@ tailwind.config = {
             alt="<?= htmlspecialchars($product['product_name']) ?>"
             onerror="this.src='https://picsum.photos/seed/<?= $product['id'] ?>/600/600.jpg'"
           >
-          <!-- Category badge -->
           <div class="absolute top-4 left-4 z-10 bg-surface-900/70 backdrop-blur-sm border border-white/10 rounded-xl px-3 py-1.5 text-xs font-semibold text-white/60">
             <i class="fa-solid fa-folder text-[9px] text-gold-400 mr-1.5"></i>
             <?= htmlspecialchars($product['category_name']) ?>
-          </div>
-        </div>
-
-        <!-- Thumbnails (placeholder for multiple images) -->
-        <div class="flex items-center gap-3">
-          <div class="thumb active" onclick="changeThumb(this, '../backend/uploads/<?= $product['image'] ?>')">
-            <img src="../backend/uploads/<?= $product['image'] ?>" alt="" onerror="this.src='https://picsum.photos/seed/<?= $product['id'] ?>a/100/100.jpg'">
-          </div>
-          <div class="thumb" onclick="changeThumb(this, 'https://picsum.photos/seed/<?= $product['id'] ?>b/600/600.jpg')">
-            <img src="https://picsum.photos/seed/<?= $product['id'] ?>b/100/100.jpg" alt="">
-          </div>
-          <div class="thumb" onclick="changeThumb(this, 'https://picsum.photos/seed/<?= $product['id'] ?>c/600/600.jpg')">
-            <img src="https://picsum.photos/seed/<?= $product['id'] ?>c/100/100.jpg" alt="">
-          </div>
-          <div class="thumb" onclick="changeThumb(this, 'https://picsum.photos/seed/<?= $product['id'] ?>d/600/600.jpg')">
-            <img src="https://picsum.photos/seed/<?= $product['id'] ?>d/100/100.jpg" alt="">
           </div>
         </div>
 
@@ -343,12 +321,10 @@ tailwind.config = {
       <!-- RIGHT — Info -->
       <div class="fade-up" style="animation-delay:0.1s">
 
-        <!-- Title -->
         <h1 class="text-3xl lg:text-4xl font-extrabold text-white leading-tight tracking-tight">
           <?= htmlspecialchars($product['product_name']) ?>
         </h1>
 
-        <!-- Rating -->
         <div class="flex items-center gap-3 mt-4">
           <div class="flex items-center gap-0.5">
             <i class="fa-solid fa-star text-xs star"></i>
@@ -361,19 +337,16 @@ tailwind.config = {
           <span class="text-xs text-gold-400 bg-gold-500/10 px-2 py-0.5 rounded-md font-semibold">In Stock</span>
         </div>
 
-        <!-- Price -->
         <div class="mt-6 flex items-end gap-3">
           <span class="text-4xl font-extrabold text-shimmer">Rs. <?= number_format($product['price'], 0) ?></span>
           <span class="text-lg text-white/20 line-through mb-1">Rs. <?= number_format($product['price'] * 1.3, 0) ?></span>
-          <span class="text-xs font-bold text-brand-500 bg-brand-500/10 px-2.5 py-1 rounded-lg mb-1.5">-30%</span>
+          <span class="text-xs font-bold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg mb-1.5">-30%</span>
         </div>
 
-        <!-- Description -->
         <p class="text-sm text-white/35 leading-relaxed mt-6 max-w-lg">
           <?= htmlspecialchars($product['description'] ?? 'Premium quality product engineered for exceptional performance. Designed with attention to detail, built to last, and crafted for those who demand the very best.') ?>
         </p>
 
-        <!-- Feature Pills -->
         <div class="flex flex-wrap gap-3 mt-6">
           <div class="feat-pill">
             <i class="fa-solid fa-truck-fast text-gold-400 text-xs"></i>
@@ -407,11 +380,16 @@ tailwind.config = {
             </button>
           </div>
 
-          <!-- Add to Cart -->
-          <a href="add_to_cart.php?id=<?= $product['id'] ?>" id="cartLink" onclick="showToast()" class="btn-cart flex-1 sm:flex-none px-8 py-4 text-sm flex items-center justify-center gap-2 text-center">
-            <i class="fa-solid fa-bag-shopping text-xs"></i>
-            Add to Cart
-          </a>
+          <!-- Add to Cart — AJAX -->
+          <button
+            type="button"
+            id="addToCartBtn"
+            onclick="addToCart(<?= $product['id'] ?>)"
+            class="btn-cart flex-1 sm:flex-none px-8 py-4 text-sm flex items-center justify-center gap-2 text-center cursor-pointer"
+          >
+            <i class="fa-solid fa-bag-shopping text-xs" id="cartBtnIcon"></i>
+            <span id="cartBtnText">Add to Cart</span>
+          </button>
 
           <!-- Buy Now -->
           <a href="cart.php" class="btn-outline px-8 py-4 text-sm flex items-center justify-center gap-2 text-center">
@@ -421,7 +399,6 @@ tailwind.config = {
 
         </div>
 
-        <!-- Trust badges -->
         <div class="flex items-center gap-6 mt-8 pt-6 border-t border-white/[0.04]">
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-lock text-xs text-gold-400/50"></i>
@@ -602,6 +579,94 @@ let qty = 1;
 function changeQty(delta) {
   qty = Math.max(1, Math.min(10, qty + delta));
   document.getElementById('qtyValue').textContent = qty;
+}
+
+/* ===== ADD TO CART — AJAX ===== */
+function addToCart(productId) {
+  const btn = document.getElementById('addToCartBtn');
+  const btnText = document.getElementById('cartBtnText');
+  const btnIcon = document.getElementById('cartBtnIcon');
+
+  // Loading state
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+  btn.style.pointerEvents = 'none';
+  btnIcon.className = 'fa-solid fa-spinner fa-spin text-xs';
+  btnText.textContent = 'Adding...';
+
+  const formData = new FormData();
+  formData.append('product_id', productId);
+  formData.append('quantity', qty);
+
+  fetch('add_to_cart.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+
+    if (data.success) {
+      // Success state
+      btnIcon.className = 'fa-solid fa-check text-xs';
+      btnText.textContent = 'Added ✓';
+      btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+
+      // Update navbar badge
+      updateCartCount(data.cart_count);
+
+      // Show toast
+      showToast();
+
+      // Reset button after 2s
+      setTimeout(() => {
+        btnIcon.className = 'fa-solid fa-bag-shopping text-xs';
+        btnText.textContent = 'Add to Cart';
+        btn.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+      }, 2000);
+
+    } else {
+      btnIcon.className = 'fa-solid fa-bag-shopping text-xs';
+      btnText.textContent = 'Try Again';
+      setTimeout(() => {
+        btnText.textContent = 'Add to Cart';
+      }, 1500);
+    }
+  })
+  .catch(err => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+    btnIcon.className = 'fa-solid fa-bag-shopping text-xs';
+    btnText.textContent = 'Add to Cart';
+    console.error('Cart error:', err);
+  });
+}
+
+/* Update cart badge in navbar */
+function updateCartCount(count) {
+  const wrap = document.getElementById('cartIconWrap');
+  let badge = document.getElementById('cartBadge');
+
+  if (count > 0) {
+    if (badge) {
+      badge.textContent = count;
+    } else {
+      badge = document.createElement('span');
+      badge.id = 'cartBadge';
+      badge.className = 'absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 text-surface-900 text-[10px] font-extrabold flex items-center justify-center';
+      badge.textContent = count;
+      wrap.appendChild(badge);
+    }
+    // Pop animation
+    badge.classList.remove('badge-pop');
+    void badge.offsetWidth; // trigger reflow
+    badge.classList.add('badge-pop');
+  } else {
+    if (badge) badge.remove();
+  }
 }
 
 /* Toast */
