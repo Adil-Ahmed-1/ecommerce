@@ -1,15 +1,34 @@
 <?php
+session_start();
 include("../config/db.php");
 
+/* ===== CHECK LOGIN ===== */
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
+
+/* ===== FETCH LOGGED-IN USER ===== */
+ $uid = $_SESSION['user_id'];
+ $user_res = mysqli_query($conn, "SELECT name, email, role FROM users WHERE id = $uid");
+ $user = mysqli_fetch_assoc($user_res);
+
+ $user_name = $user['name'] ?? 'Unknown';
+ $user_email = $user['email'] ?? '';
+ $user_image = 'https://ui-avatars.com/api/?name=' . urlencode($user_name) . '&background=16b364&color=fff&bold=true';
+ $user_role = ucfirst($user['role'] ?? 'user');
+
+/* ===== PRODUCT LOGIC ===== */
  $cat_query = "SELECT * FROM categories";
  $cat_result = mysqli_query($conn, $cat_query);
 
 if (isset($_POST['add_product'])) {
 
     $name = trim($_POST['product_name']);
-    $price = $_POST['price'];
+    $price = floatval($_POST['price']);
+    $stock = intval($_POST['stock']);
     $desc = trim($_POST['description']);
-    $category = $_POST['category_id'];
+    $category = intval($_POST['category_id']);
 
     $image = $_FILES['image']['name'];
     $tmp = $_FILES['image']['tmp_name'];
@@ -30,10 +49,10 @@ if (isset($_POST['add_product'])) {
         $image = null;
     }
 
-    if (!isset($error)) {
-        $query = "INSERT INTO products (category_id, product_name, price, description, image) VALUES (?, ?, ?, ?, ?)";
+    if (!isset($error) && !empty($name) && $category > 0) {
+        $query = "INSERT INTO products (category_id, product_name, price, stock, description, image) VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = mysqli_prepare($conn, $query);
-        mysqli_stmt_bind_param($stmt, "isdss", $category, $name, $price, $desc, $image);
+        mysqli_stmt_bind_param($stmt, "isiiss", $category, $name, $price, $stock, $desc, $image);
         mysqli_stmt_execute($stmt);
         $success = "Product Added Successfully!";
     }
@@ -161,7 +180,6 @@ tailwind.config = {
   }
   .dark .field-group label { color:#6b7280; }
 
-  /* Dropzone */
   .dropzone {
     border:2px dashed #d1d5db;
     transition:all 0.25s ease;
@@ -180,22 +198,23 @@ tailwind.config = {
     border-color:#3acd7e;
   }
 
-  /* Preview image */
   .preview-img {
     max-height:160px;
     object-fit:contain;
     border-radius:12px;
   }
 
-  /* Price prefix */
-  .price-wrapper .prefix {
-    position:absolute;left:3.5rem;top:50%;transform:translateY(-50%);
-    font-size:0.875rem;font-weight:600;color:#9ca3af;
-    pointer-events:none;
+  /* Role Badges */
+  .role-badge {
+    font-size:9px;font-weight:700;letter-spacing:0.05em;
+    text-transform:uppercase;padding:2px 7px;border-radius:6px;
   }
-  .price-wrapper input {
-    padding-left:4.5rem;
-  }
+  .role-admin { background:rgba(58,205,126,0.15); color:#3acd7e; }
+  .role-user { background:rgba(96,165,250,0.15); color:#60a5fa; }
+
+  .sidebar-collapsed .sidebar-text { opacity:0; width:0; overflow:hidden; }
+  .sidebar-collapsed .sidebar-logo-text { opacity:0; width:0; overflow:hidden; }
+  .sidebar-collapsed .sidebar-avatar { width:36px; height:36px; }
 </style>
 
 </head>
@@ -215,18 +234,22 @@ tailwind.config = {
     </button>
   </div>
 
+  <!-- DYNAMIC USER AVATAR -->
   <div class="px-5 py-4 flex items-center gap-3 border-t border-white/10">
-    <img src="../uploads/about.png" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0">
+    <img src="<?= $user_image ?>" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
     <div class="sidebar-text transition-all duration-300">
-      <p class="text-sm font-semibold leading-tight">Adil Khoso</p>
-      <p class="text-[11px] text-white/50 mt-0.5">Super Admin</p>
+      <div class="flex items-center gap-2">
+        <p class="text-sm font-semibold leading-tight"><?= htmlspecialchars($user_name) ?></p>
+        <span class="role-badge <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+      </div>
+      <p class="text-[11px] text-white/50 mt-0.5"><?= htmlspecialchars($user_email) ?></p>
     </div>
   </div>
 
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
 
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
-    <a href="../index.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
+    <a href="dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
       <i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">Dashboard</span>
     </a>
@@ -266,7 +289,6 @@ tailwind.config = {
 <!-- ========== MAIN ========== -->
 <main id="main" class="ml-[260px] min-h-screen transition-all duration-300">
 
-  <!-- TOPBAR -->
   <header class="topbar-line sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
 
     <div>
@@ -282,19 +304,25 @@ tailwind.config = {
 
       <div class="relative">
         <button onclick="toggleMenu()" class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
-          <img src="../uploads/about.png" class="w-8 h-8 rounded-lg object-cover">
+          <img src="<?= $user_image ?>" class="w-8 h-8 rounded-lg object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
           <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
         </button>
-        <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-2xl w-48 py-2 overflow-hidden dropdown-enter">
-          <div class="px-4 py-2.5 border-b border-gray-100 dark:border-white/5">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">Adil Khoso</p>
-            <p class="text-[11px] text-gray-400">admin@example.com</p>
+        <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-2xl w-52 py-2 overflow-hidden dropdown-enter">
+          <div class="px-4 py-3 border-b border-gray-100 dark:border-white/5">
+            <div class="flex items-center gap-3">
+              <img src="<?= $user_image ?>" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
+              <div>
+                <p class="text-sm font-semibold text-gray-900 dark:text-white"><?= htmlspecialchars($user_name) ?></p>
+                <p class="text-[11px] text-gray-400"><?= htmlspecialchars($user_email) ?></p>
+                <span class="role-badge mt-1 inline-block <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+              </div>
+            </div>
           </div>
-          <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+          <a href="../profile.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
             <i class="fa-solid fa-user w-4 text-center text-xs"></i> Profile
           </a>
           <div class="border-t border-gray-100 dark:border-white/5 mt-1 pt-1">
-            <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition">
+            <a href="../logout.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition">
               <i class="fa-solid fa-right-from-bracket w-4 text-center text-xs"></i> Logout
             </a>
           </div>
@@ -304,7 +332,6 @@ tailwind.config = {
     </div>
   </header>
 
-  <!-- CONTENT -->
   <div class="px-8 py-6">
 
     <!-- Success Toast -->
@@ -340,7 +367,7 @@ tailwind.config = {
 
     <!-- BREADCRUMB -->
     <div class="flex items-center gap-2 text-xs text-gray-400 mb-5 fade-up">
-      <a href="../index.php" class="hover:text-brand-500 transition">Dashboard</a>
+      <a href="dashboard.php" class="hover:text-brand-500 transition">Dashboard</a>
       <i class="fa-solid fa-chevron-right text-[8px] text-gray-300 dark:text-gray-700"></i>
       <a href="view.php" class="hover:text-brand-500 transition">Products</a>
       <i class="fa-solid fa-chevron-right text-[8px] text-gray-300 dark:text-gray-700"></i>
@@ -350,7 +377,6 @@ tailwind.config = {
     <!-- FORM CARD -->
     <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
 
-      <!-- Card Header -->
       <div class="px-7 py-5 border-b border-gray-100 dark:border-white/5 flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
           <i class="fa-solid fa-box-open text-amber-500 text-sm"></i>
@@ -361,18 +387,17 @@ tailwind.config = {
         </div>
       </div>
 
-      <!-- Form Body -->
       <form method="POST" enctype="multipart/form-data" id="productForm" class="p-7">
 
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-x-8 gap-y-5">
 
-          <!-- LEFT COLUMN — 3 cols -->
+          <!-- LEFT COLUMN -->
           <div class="lg:col-span-3 space-y-5">
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
 
               <!-- Product Name -->
-              <div class="field-group">
+              <div class="field-group sm:col-span-1">
                 <label for="prod_name">Product Name</label>
                 <div class="relative">
                   <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
@@ -381,14 +406,14 @@ tailwind.config = {
                   <input
                     type="text" id="prod_name" name="product_name"
                     class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400"
-                    placeholder="e.g. Wireless Headphones" required>
+                    placeholder="e.g. Headphones" required>
                 </div>
               </div>
 
               <!-- Price -->
               <div class="field-group">
-                <label for="prod_price">Price</label>
-                <div class="relative price-wrapper">
+                <label for="prod_price">Price (Rs.)</label>
+                <div class="relative">
                   <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
                     <i class="fa-solid fa-dollar-sign"></i>
                   </span>
@@ -396,6 +421,20 @@ tailwind.config = {
                     type="number" id="prod_price" name="price" step="0.01" min="0"
                     class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400"
                     placeholder="0.00" required>
+                </div>
+              </div>
+
+              <!-- Stock -->
+              <div class="field-group">
+                <label for="prod_stock">Stock Qty</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+                    <i class="fa-solid fa-warehouse"></i>
+                  </span>
+                  <input
+                    type="number" id="prod_stock" name="stock" min="0" value="0"
+                    class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400"
+                    placeholder="0" required>
                 </div>
               </div>
 
@@ -438,7 +477,7 @@ tailwind.config = {
 
           </div>
 
-          <!-- RIGHT COLUMN — 2 cols (Image Upload) -->
+          <!-- RIGHT COLUMN (Image Upload) -->
           <div class="lg:col-span-2">
             <div class="field-group">
               <label>Product Image</label>
@@ -448,7 +487,6 @@ tailwind.config = {
                 class="dropzone rounded-2xl p-6 flex flex-col items-center justify-center text-center min-h-[240px] bg-gray-50 dark:bg-white/[0.02]"
                 onclick="document.getElementById('fileInput').click()"
               >
-                <!-- Default state -->
                 <div id="dropDefault">
                   <div class="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4">
                     <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-300 dark:text-gray-700"></i>
@@ -463,7 +501,6 @@ tailwind.config = {
                   </div>
                 </div>
 
-                <!-- Preview state -->
                 <div id="dropPreview" class="hidden w-full">
                   <img id="previewImg" src="" class="preview-img mx-auto mb-3" alt="Preview">
                   <p id="previewName" class="text-xs font-medium text-gray-500 dark:text-white/50 truncate max-w-[200px] mx-auto"></p>
@@ -536,13 +573,10 @@ tailwind.config = {
     </div>
 
   </div>
-
 </main>
 
-<!-- ========== SCRIPTS ========== -->
 <script>
 
-/* Sidebar Toggle */
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const main = document.getElementById('main');
@@ -551,7 +585,6 @@ function toggleSidebar() {
   main.style.marginLeft = collapsed ? '78px' : '260px';
 }
 
-/* Dark Mode */
 function toggleDark() {
   const html = document.documentElement;
   const body = document.body;
@@ -563,7 +596,6 @@ function toggleDark() {
     : '<i class="fa-solid fa-moon text-sm"></i>';
 }
 
-/* Profile Menu */
 function toggleMenu() {
   document.getElementById('menu').classList.toggle('hidden');
 }
@@ -574,7 +606,6 @@ document.addEventListener('click', function(e) {
   }
 });
 
-/* Toast Dismiss */
 function dismissToast() {
   const t = document.getElementById('toast');
   if (!t) return;
@@ -592,7 +623,6 @@ function dismissErrorToast() {
 <?php if(isset($success)) { ?> setTimeout(dismissToast, 5000); <?php } ?>
 <?php if(isset($error)) { ?> setTimeout(dismissErrorToast, 6000); <?php } ?>
 
-/* Character Counter */
 const textarea = document.getElementById('prod_desc');
 const counter = document.getElementById('charCount');
 if (textarea && counter) {
@@ -619,14 +649,12 @@ function handleFile(input) {
   const file = input.files[0];
   if (!file) return;
 
-  /* Validate size (5MB) */
   if (file.size > 5 * 1024 * 1024) {
     alert('Image must be under 5 MB.');
     input.value = '';
     return;
   }
 
-  /* Validate type */
   const valid = ['image/jpeg','image/png','image/gif','image/webp'];
   if (!valid.includes(file.type)) {
     alert('Only JPG, PNG, GIF, and WEBP are allowed.');
@@ -634,7 +662,6 @@ function handleFile(input) {
     return;
   }
 
-  /* Show preview */
   const reader = new FileReader();
   reader.onload = function(e) {
     previewImg.src = e.target.result;
@@ -656,7 +683,6 @@ function removeImage(e) {
   dropzone.classList.remove('has-image');
 }
 
-/* Drag & drop */
 dropzone.addEventListener('dragover', function(e) {
   e.preventDefault();
   this.classList.add('drag-over');
@@ -674,13 +700,11 @@ dropzone.addEventListener('drop', function(e) {
   }
 });
 
-/* Form submit — prevent if no file */
 document.getElementById('productForm').addEventListener('submit', function(e) {
   if (!fileInput.files.length) {
     e.preventDefault();
-    /* Shake the dropzone */
     dropzone.style.animation = 'none';
-    dropzone.offsetHeight; /* reflow */
+    dropzone.offsetHeight;
     dropzone.style.animation = 'shake 0.4s ease';
     dropzone.style.borderColor = '#ef4444';
     setTimeout(() => {
@@ -690,7 +714,6 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
   }
 });
 
-/* Shake keyframes injected dynamically */
 const shakeStyle = document.createElement('style');
 shakeStyle.textContent = `
   @keyframes shake {

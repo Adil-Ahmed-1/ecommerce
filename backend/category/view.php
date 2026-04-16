@@ -1,17 +1,34 @@
 <?php
+session_start();
 include("../config/db.php");
 
-/* PAGINATION */
+/* ===== CHECK LOGIN ===== */
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
+
+/* ===== FETCH LOGGED-IN USER ===== */
+ $uid = $_SESSION['user_id'];
+ $user_res = mysqli_query($conn, "SELECT name, email, role FROM users WHERE id = $uid");
+ $user = mysqli_fetch_assoc($user_res);
+
+ $user_name = $user['name'] ?? 'Unknown';
+ $user_email = $user['email'] ?? '';
+ $user_image = 'https://ui-avatars.com/api/?name=' . urlencode($user_name) . '&background=16b364&color=fff&bold=true';
+ $user_role = ucfirst($user['role'] ?? 'user');
+
+/* ===== PAGINATION ===== */
  $limit = 5;
  $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
  $start = ($page - 1) * $limit;
 
-/* TOTAL */
+/* ===== TOTAL ===== */
  $total_result = mysqli_query($conn, "SELECT COUNT(*) as total FROM categories");
  $total_row = mysqli_fetch_assoc($total_result);
  $total_pages = ceil($total_row['total'] / $limit);
 
-/* DATA — resolve parent name via LEFT JOIN */
+/* ===== DATA ===== */
  $query = "
     SELECT c.*, p.category_name AS parent_name
     FROM categories c
@@ -82,18 +99,10 @@ tailwind.config = {
     background:linear-gradient(90deg,transparent,rgba(58,205,126,0.25),transparent);
   }
 
-  /* Table row hover */
-  .trow {
-    transition:background 0.2s ease;
-  }
-  .trow:hover {
-    background:rgba(58,205,126,0.04);
-  }
-  .dark .trow:hover {
-    background:rgba(58,205,126,0.06);
-  }
+  .trow { transition:background 0.2s ease; }
+  .trow:hover { background:rgba(58,205,126,0.04); }
+  .dark .trow:hover { background:rgba(58,205,126,0.06); }
 
-  /* Action buttons */
   .act-btn {
     width:32px;height:32px;border-radius:8px;
     display:inline-flex;align-items:center;justify-content:center;
@@ -101,7 +110,6 @@ tailwind.config = {
   }
   .act-btn:hover { transform:translateY(-1px); }
 
-  /* Pagination */
   .pg-btn {
     min-width:36px;height:36px;border-radius:10px;
     display:inline-flex;align-items:center;justify-content:center;
@@ -119,32 +127,26 @@ tailwind.config = {
     color:#fff !important;
     box-shadow:0 4px 12px -3px rgba(22,179,100,0.4);
   }
-  .pg-btn:disabled {
-    opacity:0.3;cursor:not-allowed;
-  }
+  .pg-btn:disabled { opacity:0.3;cursor:not-allowed; }
 
-  /* Fade in */
   .fade-up {
     opacity:0;transform:translateY(16px);
     animation:fadeUp 0.5s cubic-bezier(.4,0,.2,1) forwards;
   }
   @keyframes fadeUp { to { opacity:1;transform:translateY(0); } }
 
-  /* Dropdown */
   .dropdown-enter { animation:dropIn 0.2s cubic-bezier(.4,0,.2,1) forwards; }
   @keyframes dropIn {
     from { opacity:0;transform:translateY(-8px) scale(0.96); }
     to { opacity:1;transform:translateY(0) scale(1); }
   }
 
-  /* Search input */
   .search-input:focus {
     border-color:#3acd7e;
     box-shadow:0 0 0 3px rgba(58,205,126,0.1);
     outline:none;
   }
 
-  /* Status dot */
   .status-dot {
     width:7px;height:7px;border-radius:50%;
     display:inline-block;margin-right:6px;
@@ -152,7 +154,6 @@ tailwind.config = {
   .status-dot.active { background:#3acd7e; box-shadow:0 0 6px rgba(58,205,126,0.5); }
   .status-dot.inactive { background:#ef4444; box-shadow:0 0 6px rgba(239,68,68,0.3); }
 
-  /* Delete confirm modal */
   .modal-overlay {
     position:fixed;inset:0;z-index:9999;
     background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);
@@ -165,6 +166,18 @@ tailwind.config = {
     transform:scale(0.92);transition:transform 0.25s cubic-bezier(.4,0,.2,1);
   }
   .modal-overlay.show .modal-box { transform:scale(1); }
+
+  /* Role Badges */
+  .role-badge {
+    font-size:9px;font-weight:700;letter-spacing:0.05em;
+    text-transform:uppercase;padding:2px 7px;border-radius:6px;
+  }
+  .role-admin { background:rgba(58,205,126,0.15); color:#3acd7e; }
+  .role-user { background:rgba(96,165,250,0.15); color:#60a5fa; }
+
+  .sidebar-collapsed .sidebar-text { opacity:0; width:0; overflow:hidden; }
+  .sidebar-collapsed .sidebar-logo-text { opacity:0; width:0; overflow:hidden; }
+  .sidebar-collapsed .sidebar-avatar { width:36px; height:36px; }
 </style>
 
 </head>
@@ -203,18 +216,21 @@ tailwind.config = {
     </button>
   </div>
 
+  <!-- DYNAMIC USER AVATAR -->
   <div class="px-5 py-4 flex items-center gap-3 border-t border-white/10">
-    <img src="../uploads/about.png" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0">
+    <img src="<?= $user_image ?>" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
     <div class="sidebar-text transition-all duration-300">
-      <p class="text-sm font-semibold leading-tight">Adil Khoso</p>
-      <p class="text-[11px] text-white/50 mt-0.5">Super Admin</p>
+      <div class="flex items-center gap-2">
+        <p class="text-sm font-semibold leading-tight"><?= htmlspecialchars($user_name) ?></p>
+        <span class="role-badge <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+      </div>
+      <p class="text-[11px] text-white/50 mt-0.5"><?= htmlspecialchars($user_email) ?></p>
     </div>
   </div>
 
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
-
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
-    <a href="../index.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
+    <a href="../dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
       <i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">Dashboard</span>
     </a>
@@ -236,7 +252,6 @@ tailwind.config = {
       <i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">View Products</span>
     </a>
-
   </nav>
 
   <div class="px-3 pb-5">
@@ -248,64 +263,60 @@ tailwind.config = {
       <p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p>
     </div>
   </div>
-
 </aside>
 
 <!-- ========== MAIN ========== -->
 <main id="main" class="ml-[260px] min-h-screen transition-all duration-300">
 
-  <!-- TOPBAR -->
   <header class="topbar-line sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
-
     <div>
       <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">View Categories</h1>
       <p class="text-xs text-gray-400 mt-0.5"><?= $total_row['total'] ?> total categories</p>
     </div>
-
     <div class="flex items-center gap-3">
-
       <button onclick="toggleDark()" id="darkBtn" class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-600 dark:text-white/70">
         <i class="fa-solid fa-moon text-sm"></i>
       </button>
-
       <div class="relative">
         <button onclick="toggleMenu()" class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
-          <img src="../uploads/about.png" class="w-8 h-8 rounded-lg object-cover">
+          <img src="<?= $user_image ?>" class="w-8 h-8 rounded-lg object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
           <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
         </button>
-        <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-2xl w-48 py-2 overflow-hidden dropdown-enter">
-          <div class="px-4 py-2.5 border-b border-gray-100 dark:border-white/5">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">Adil Khoso</p>
-            <p class="text-[11px] text-gray-400">admin@example.com</p>
+        <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-2xl w-52 py-2 overflow-hidden dropdown-enter">
+          <div class="px-4 py-3 border-b border-gray-100 dark:border-white/5">
+            <div class="flex items-center gap-3">
+              <img src="<?= $user_image ?>" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
+              <div>
+                <p class="text-sm font-semibold text-gray-900 dark:text-white"><?= htmlspecialchars($user_name) ?></p>
+                <p class="text-[11px] text-gray-400"><?= htmlspecialchars($user_email) ?></p>
+                <span class="role-badge mt-1 inline-block <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+              </div>
+            </div>
           </div>
-          <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+          <a href="../profile.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
             <i class="fa-solid fa-user w-4 text-center text-xs"></i> Profile
           </a>
           <div class="border-t border-gray-100 dark:border-white/5 mt-1 pt-1">
-            <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition">
+            <a href="../logout.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition">
               <i class="fa-solid fa-right-from-bracket w-4 text-center text-xs"></i> Logout
             </a>
           </div>
         </div>
       </div>
-
     </div>
   </header>
 
-  <!-- CONTENT -->
   <div class="px-8 py-6">
 
     <!-- BREADCRUMB -->
     <div class="flex items-center gap-2 text-xs text-gray-400 mb-5 fade-up">
-      <a href="../index.php" class="hover:text-brand-500 transition">Dashboard</a>
+      <a href="../dashboard.php" class="hover:text-brand-500 transition">Dashboard</a>
       <i class="fa-solid fa-chevron-right text-[8px] text-gray-300 dark:text-gray-700"></i>
       <span class="text-gray-700 dark:text-white font-medium">All Categories</span>
     </div>
 
     <!-- TOOLBAR -->
     <div class="fade-up flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
-
-      <!-- Search -->
       <div class="relative w-full sm:w-72">
         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
         <input
@@ -315,19 +326,15 @@ tailwind.config = {
           oninput="filterTable()"
         >
       </div>
-
-      <!-- Add button -->
       <a href="add.php" class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-500/20 shrink-0">
         <i class="fa-solid fa-plus text-xs"></i>
         Add Category
       </a>
-
     </div>
 
     <!-- TABLE CARD -->
     <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden" style="animation-delay:0.08s">
 
-      <!-- Table -->
       <div class="overflow-x-auto">
         <table class="w-full text-sm" id="catTable">
           <thead>
@@ -406,7 +413,6 @@ tailwind.config = {
               </tr>
               <?php } ?>
             <?php } else { ?>
-              <!-- Empty State -->
               <tr>
                 <td colspan="6" class="px-6 py-16 text-center">
                   <div class="flex flex-col items-center">
@@ -423,7 +429,6 @@ tailwind.config = {
               </tr>
             <?php } ?>
           </tbody>
-
         </table>
       </div>
 
@@ -435,15 +440,11 @@ tailwind.config = {
           <span class="font-semibold text-gray-600 dark:text-white/60"><?= min($start + $limit, $total_row['total']) ?></span> of
           <span class="font-semibold text-gray-600 dark:text-white/60"><?= $total_row['total'] ?></span> results
         </p>
-
-        <!-- PAGINATION -->
         <div class="flex items-center gap-1.5">
           <button class="pg-btn text-gray-500 dark:text-white/40" <?= $page <= 1 ? 'disabled' : '' ?> onclick="window.location.href='?page=<?= $page - 1 ?>'">
             <i class="fa-solid fa-chevron-left text-[10px]"></i>
           </button>
-
           <?php
-            /* Smart pagination — show first, last, and neighbors */
             $range = 2;
             $pages_html = '';
             for ($i = 1; $i <= $total_pages; $i++) {
@@ -458,7 +459,6 @@ tailwind.config = {
             }
             echo $pages_html;
           ?>
-
           <button class="pg-btn text-gray-500 dark:text-white/40" <?= $page >= $total_pages ? 'disabled' : '' ?> onclick="window.location.href='?page=<?= $page + 1 ?>'">
             <i class="fa-solid fa-chevron-right text-[10px]"></i>
           </button>
@@ -470,7 +470,6 @@ tailwind.config = {
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 fade-up" style="animation-delay:0.15s">
-
       <div class="bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-5 flex items-center gap-4">
         <div class="w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-950 flex items-center justify-center shrink-0">
           <i class="fa-solid fa-layer-group text-brand-500"></i>
@@ -504,17 +503,13 @@ tailwind.config = {
           <p class="text-xs text-gray-400 mt-0.5">Inactive</p>
         </div>
       </div>
-
     </div>
 
   </div>
-
 </main>
 
-<!-- ========== SCRIPTS ========== -->
 <script>
 
-/* Sidebar Toggle */
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const main = document.getElementById('main');
@@ -523,7 +518,6 @@ function toggleSidebar() {
   main.style.marginLeft = collapsed ? '78px' : '260px';
 }
 
-/* Dark Mode */
 function toggleDark() {
   const html = document.documentElement;
   const body = document.body;
@@ -535,7 +529,6 @@ function toggleDark() {
     : '<i class="fa-solid fa-moon text-sm"></i>';
 }
 
-/* Profile Menu */
 function toggleMenu() {
   document.getElementById('menu').classList.toggle('hidden');
 }
@@ -546,7 +539,6 @@ document.addEventListener('click', function(e) {
   }
 });
 
-/* Delete Modal */
 function openDeleteModal(url) {
   document.getElementById('deleteLink').href = url;
   document.getElementById('deleteModal').classList.add('show');
@@ -558,7 +550,6 @@ document.getElementById('deleteModal').addEventListener('click', function(e) {
   if (e.target === this) closeDeleteModal();
 });
 
-/* Client-side Search Filter */
 function filterTable() {
   const query = document.getElementById('searchInput').value.toLowerCase();
   const rows = document.querySelectorAll('#tableBody tr');

@@ -1,9 +1,27 @@
 <?php
+session_start();
 include("config/db.php");
 
-/* DATA */
- $cat = mysqli_fetch_assoc(mysqli_query($conn,"SELECT COUNT(*) as total FROM categories"))['total'];
- $prod = mysqli_fetch_assoc(mysqli_query($conn,"SELECT COUNT(*) as total FROM products"))['total'];
+/* ===== CHECK LOGIN ===== */
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
+
+/* ===== FETCH LOGGED-IN USER ===== */
+ $uid = $_SESSION['user_id'];
+ $user_res = mysqli_query($conn, "SELECT name, email, image, role FROM users WHERE id = $uid");
+ $user = mysqli_fetch_assoc($user_res);
+
+ $user_name = $user['name'] ?? 'Unknown';
+ $user_email = $user['email'] ?? '';
+ $user_image = !empty($user['image']) ? 'uploads/' . $user['image'] : 'https://ui-avatars.com/api/?name=' . urlencode($user_name) . '&background=16b364&color=fff&bold=true';
+ $user_role = ucfirst($user['role'] ?? 'user');
+
+/* ===== DASHBOARD STATS ===== */
+ $cat = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM categories"))['total'];
+ $prod = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM products"))['total'];
+$user_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM users"))['total'];
 ?>
 
 <!DOCTYPE html>
@@ -41,13 +59,11 @@ tailwind.config = {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Plus Jakarta Sans', sans-serif; }
 
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 99px; }
   .dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
 
-  /* Sidebar glass */
   .sidebar-glass {
     background: rgba(8, 75, 46, 0.95);
     backdrop-filter: blur(20px);
@@ -57,7 +73,6 @@ tailwind.config = {
     background: rgba(3, 42, 26, 0.98);
   }
 
-  /* Nav link active line */
   .nav-link { position: relative; transition: all 0.25s cubic-bezier(.4,0,.2,1); }
   .nav-link::before {
     content: '';
@@ -70,7 +85,6 @@ tailwind.config = {
   .nav-link.active { background: rgba(58, 205, 126, 0.12); color: #3acd7e; }
   .nav-link:hover { background: rgba(255,255,255,0.06); }
 
-  /* Stat card shimmer */
   .stat-card {
     position: relative; overflow: hidden;
     transition: transform 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s ease;
@@ -87,10 +101,8 @@ tailwind.config = {
   .stat-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.12); }
   .dark .stat-card:hover { box-shadow: 0 20px 40px -12px rgba(0,0,0,0.4); }
 
-  /* Counter animation */
   .counter { display: inline-block; }
 
-  /* Icon container pulse */
   .icon-ring {
     animation: iconPulse 3s ease-in-out infinite;
   }
@@ -99,7 +111,6 @@ tailwind.config = {
     50% { box-shadow: 0 0 0 8px rgba(58,205,126,0); }
   }
 
-  /* Fade-in on load */
   .fade-up {
     opacity: 0; transform: translateY(20px);
     animation: fadeUp 0.6s cubic-bezier(.4,0,.2,1) forwards;
@@ -112,17 +123,13 @@ tailwind.config = {
   .fade-up:nth-child(3) { animation-delay: 0.15s; }
   .fade-up:nth-child(4) { animation-delay: 0.2s; }
 
-  /* Dropdown */
   .dropdown-enter { animation: dropIn 0.2s cubic-bezier(.4,0,.2,1) forwards; }
   @keyframes dropIn {
     from { opacity: 0; transform: translateY(-8px) scale(0.96); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
-  /* Chart container */
-  .chart-glow {
-    position: relative;
-  }
+  .chart-glow { position: relative; }
   .chart-glow::before {
     content: '';
     position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
@@ -131,12 +138,10 @@ tailwind.config = {
     pointer-events: none;
   }
 
-  /* Sidebar collapsed text hide */
   .sidebar-collapsed .sidebar-text { opacity: 0; width: 0; overflow: hidden; }
   .sidebar-collapsed .sidebar-logo-text { opacity: 0; width: 0; overflow: hidden; }
   .sidebar-collapsed .sidebar-avatar { width: 36px; height: 36px; }
 
-  /* Dot indicator */
   .live-dot {
     width: 8px; height: 8px; border-radius: 50%; background: #3acd7e;
     animation: livePulse 2s ease-in-out infinite;
@@ -146,15 +151,30 @@ tailwind.config = {
     50% { opacity: 0.4; }
   }
 
-  /* Topbar gradient border */
-  .topbar-border {
-    position: relative;
-  }
+  .topbar-border { position: relative; }
   .topbar-border::after {
     content: '';
     position: absolute; bottom: 0; left: 0; right: 0;
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(58,205,126,0.3), transparent);
+  }
+
+  /* Role badge */
+  .role-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+  .role-admin {
+    background: rgba(58,205,126,0.15);
+    color: #3acd7e;
+  }
+  .role-user {
+    background: rgba(96,165,250,0.15);
+    color: #60a5fa;
   }
 </style>
 
@@ -176,12 +196,15 @@ tailwind.config = {
     </button>
   </div>
 
-  <!-- Avatar -->
+  <!-- Avatar — DYNAMIC -->
   <div class="px-5 py-4 flex items-center gap-3 border-t border-white/10">
-    <img src="uploads/about.png" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0">
+    <img src="<?= $user_image ?>" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
     <div class="sidebar-text transition-all duration-300">
-      <p class="text-sm font-semibold leading-tight">Adil Khoso</p>
-      <p class="text-[11px] text-white/50 mt-0.5">Super Admin</p>
+      <div class="flex items-center gap-2">
+        <p class="text-sm font-semibold leading-tight"><?= htmlspecialchars($user_name) ?></p>
+        <span class="role-badge <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+      </div>
+      <p class="text-[11px] text-white/50 mt-0.5"><?= htmlspecialchars($user_email) ?></p>
     </div>
   </div>
 
@@ -190,11 +213,12 @@ tailwind.config = {
 
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
 
-    <a href="#" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium">
+    <a href="dashboard.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium">
       <i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">Dashboard</span>
     </a>
 
+    <?php if ($user_role === 'Admin') { ?>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Manage</p>
 
     <a href="category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
@@ -211,6 +235,12 @@ tailwind.config = {
       <i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">Add Product</span>
     </a>
+
+    <a href="product/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
+      <i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i>
+      <span class="sidebar-text transition-all duration-300">View Products</span>
+    </a>
+    <?php } ?>
 
   </nav>
 
@@ -259,26 +289,36 @@ tailwind.config = {
         <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
       </button>
 
-      <!-- Profile -->
+      <!-- Profile — DYNAMIC -->
       <div class="relative">
         <button onclick="toggleMenu()" class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
-          <img src="uploads/about.png" class="w-8 h-8 rounded-lg object-cover">
+          <img src="<?= $user_image ?>" class="w-8 h-8 rounded-lg object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
+          <div class="hidden sm:block text-left">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white leading-tight"><?= htmlspecialchars($user_name) ?></p>
+            <p class="text-[10px] text-gray-400"><?= $user_role ?></p>
+          </div>
           <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
         </button>
 
-        <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-2xl w-48 py-2 overflow-hidden dropdown-enter">
-          <div class="px-4 py-2.5 border-b border-gray-100 dark:border-white/5">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">Adil Khoso</p>
-            <p class="text-[11px] text-gray-400">admin@example.com</p>
+        <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-2xl w-52 py-2 overflow-hidden dropdown-enter">
+          <div class="px-4 py-3 border-b border-gray-100 dark:border-white/5">
+            <div class="flex items-center gap-3">
+              <img src="<?= $user_image ?>" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
+              <div>
+                <p class="text-sm font-semibold text-gray-900 dark:text-white"><?= htmlspecialchars($user_name) ?></p>
+                <p class="text-[11px] text-gray-400"><?= htmlspecialchars($user_email) ?></p>
+                <span class="role-badge mt-1 inline-block <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+              </div>
+            </div>
           </div>
-          <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+          <a href="profile.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
             <i class="fa-solid fa-user w-4 text-center text-xs"></i> Profile
           </a>
           <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
             <i class="fa-solid fa-gear w-4 text-center text-xs"></i> Settings
           </a>
           <div class="border-t border-gray-100 dark:border-white/5 mt-1 pt-1">
-            <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition">
+            <a href="logout.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition">
               <i class="fa-solid fa-right-from-bracket w-4 text-center text-xs"></i> Logout
             </a>
           </div>
@@ -290,6 +330,19 @@ tailwind.config = {
 
   <!-- CONTENT -->
   <div class="px-8 py-6">
+
+    <!-- Welcome Banner -->
+    <div class="fade-up mb-6 bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-6 flex items-center gap-5 text-white relative overflow-hidden">
+      <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+      <div class="absolute -right-5 -bottom-16 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
+      <div class="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center shrink-0 relative z-10">
+        <i class="fa-solid fa-hand text-2xl"></i>
+      </div>
+      <div class="relative z-10">
+        <h2 class="text-lg font-bold">Welcome back, <?= htmlspecialchars($user_name) ?>!</h2>
+        <p class="text-sm text-white/70 mt-0.5">You're logged in as <span class="font-semibold text-white"><?= $user_role ?></span>. Here's what's happening today.</p>
+      </div>
+    </div>
 
     <!-- STATS GRID -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -347,7 +400,7 @@ tailwind.config = {
         <div class="flex items-start justify-between">
           <div>
             <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Users</p>
-            <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mt-2 counter" data-target="0">0</h2>
+            <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mt-2 counter" data-target="<?php echo $user_count; ?>">0</h2>
             <p class="text-xs text-gray-400 font-medium mt-2 flex items-center gap-1">
               <i class="fa-solid fa-minus text-[10px]"></i> No data
             </p>
@@ -385,6 +438,17 @@ tailwind.config = {
         <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4">Quick Info</h3>
 
         <div class="flex-1 space-y-4">
+
+          <!-- Logged-in User Info -->
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-brand-50 dark:bg-brand-950/50 border border-brand-100 dark:border-brand-900/50">
+            <img src="<?= $user_image ?>" class="w-10 h-10 rounded-lg object-cover border-2 border-brand-300 dark:border-brand-700" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-800 dark:text-white truncate"><?= htmlspecialchars($user_name) ?></p>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate"><?= htmlspecialchars($user_email) ?></p>
+            </div>
+            <span class="role-badge shrink-0 <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+          </div>
+
           <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/[0.03]">
             <div class="w-9 h-9 rounded-lg bg-brand-50 dark:bg-brand-950 flex items-center justify-center shrink-0">
               <i class="fa-solid fa-database text-brand-500 text-xs"></i>
@@ -425,6 +489,7 @@ tailwind.config = {
               <p class="text-sm font-semibold text-gray-800 dark:text-white"><?= date('d M, h:i A') ?></p>
             </div>
           </div>
+
         </div>
 
         <div class="mt-4 pt-4 border-t border-gray-100 dark:border-white/5">
@@ -441,54 +506,34 @@ tailwind.config = {
 <!-- ========== SCRIPTS ========== -->
 <script>
 
-/* ===== SIDEBAR TOGGLE ===== */
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const main = document.getElementById('main');
   const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
-
-  if (isCollapsed) {
-    sidebar.style.width = '78px';
-    main.style.marginLeft = '78px';
-  } else {
-    sidebar.style.width = '260px';
-    main.style.marginLeft = '260px';
-  }
+  sidebar.style.width = isCollapsed ? '78px' : '260px';
+  main.style.marginLeft = isCollapsed ? '78px' : '260px';
 }
 
-/* ===== DARK MODE ===== */
 function toggleDark() {
   const html = document.documentElement;
   const body = document.body;
   const btn = document.getElementById('darkBtn');
   const isDark = body.classList.toggle('dark');
   html.classList.toggle('dark', isDark);
-
   btn.innerHTML = isDark
     ? '<i class="fa-solid fa-sun text-sm"></i>'
     : '<i class="fa-solid fa-moon text-sm"></i>';
-
-  // Update chart colors
   if (window.analyticsChart) {
-    const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
     window.analyticsChart.options.plugins.legend.labels.color = isDark ? '#9ca3af' : '#6b7280';
     window.analyticsChart.update();
   }
 }
 
-/* ===== PROFILE MENU ===== */
 function toggleMenu() {
   const menu = document.getElementById('menu');
-  if (menu.classList.contains('hidden')) {
-    menu.classList.remove('hidden');
-    menu.classList.add('dropdown-enter');
-  } else {
-    menu.classList.add('hidden');
-    menu.classList.remove('dropdown-enter');
-  }
+  menu.classList.toggle('hidden');
 }
 
-// Close menu on outside click
 document.addEventListener('click', function(e) {
   const menu = document.getElementById('menu');
   if (!e.target.closest('.relative') && !menu.classList.contains('hidden')) {
@@ -496,18 +541,14 @@ document.addEventListener('click', function(e) {
   }
 });
 
-/* ===== COUNTER ANIMATION ===== */
 document.querySelectorAll('.counter').forEach(counter => {
   const target = parseInt(counter.getAttribute('data-target'));
   if (target === 0) return;
-
   const duration = 1200;
   const startTime = performance.now();
-
   function update(currentTime) {
     const elapsed = currentTime - startTime;
     const progress = Math.min(elapsed / duration, 1);
-    // Ease-out cubic
     const eased = 1 - Math.pow(1 - progress, 3);
     counter.textContent = Math.round(eased * target);
     if (progress < 1) requestAnimationFrame(update);
@@ -515,7 +556,6 @@ document.querySelectorAll('.counter').forEach(counter => {
   requestAnimationFrame(update);
 });
 
-/* ===== CHART ===== */
 window.analyticsChart = new Chart(document.getElementById('chart'), {
   type: 'doughnut',
   data: {

@@ -1,5 +1,20 @@
 <?php
+session_start();
 include("../config/db.php");
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
+
+ $uid = $_SESSION['user_id'];
+ $user_res = mysqli_query($conn, "SELECT name, email, role FROM users WHERE id = $uid");
+ $user = mysqli_fetch_assoc($user_res);
+
+ $user_name = $user['name'] ?? 'Unknown';
+ $user_email = $user['email'] ?? '';
+ $user_image = 'https://ui-avatars.com/api/?name=' . urlencode($user_name) . '&background=16b364&color=fff&bold=true';
+ $user_role = ucfirst($user['role'] ?? 'user');
 
 if (!isset($_GET['cat_id']) || !is_numeric($_GET['cat_id'])) {
     header("Location: ../category/view.php");
@@ -8,7 +23,6 @@ if (!isset($_GET['cat_id']) || !is_numeric($_GET['cat_id'])) {
 
  $cat_id = intval($_GET['cat_id']);
 
-/* CATEGORY */
  $stmt = mysqli_prepare($conn, "SELECT * FROM categories WHERE id = ?");
 mysqli_stmt_bind_param($stmt, "i", $cat_id);
 mysqli_stmt_execute($stmt);
@@ -20,7 +34,6 @@ if (mysqli_num_rows($cat_result) === 0) {
 }
  $cat = mysqli_fetch_assoc($cat_result);
 
-/* PRODUCTS */
  $stmt2 = mysqli_prepare($conn, "SELECT * FROM products WHERE category_id = ? ORDER BY id DESC");
 mysqli_stmt_bind_param($stmt2, "i", $cat_id);
 mysqli_stmt_execute($stmt2);
@@ -94,52 +107,129 @@ tailwind.config = {
     to { opacity:1;transform:translateY(0) scale(1); }
   }
 
-  /* Product Card */
-  .product-card {
-    transition:transform 0.35s cubic-bezier(.4,0,.2,1), box-shadow 0.35s ease;
-  }
-  .product-card:hover {
-    transform:translateY(-6px);
-    box-shadow:0 20px 40px -12px rgba(0,0,0,0.12);
-  }
-  .dark .product-card:hover {
-    box-shadow:0 20px 40px -12px rgba(0,0,0,0.5);
-  }
-
-  /* Image zoom on hover */
-  .card-img-wrap {
+  /* ===== PRODUCT CARD ===== */
+  .prod-card {
+    background:#fff;
+    border-radius:24px;
     overflow:hidden;
+    border:1px solid rgba(0,0,0,0.04);
+    transition:all 0.45s cubic-bezier(.4,0,.2,1);
+    position:relative;
   }
-  .card-img-wrap img {
-    transition:transform 0.5s cubic-bezier(.4,0,.2,1);
+  .dark .prod-card {
+    background:#131a16;
+    border-color:rgba(255,255,255,0.04);
   }
-  .product-card:hover .card-img-wrap img {
-    transform:scale(1.08);
+  .prod-card::before {
+    content:'';position:absolute;inset:0;border-radius:24px;
+    background:linear-gradient(160deg,rgba(58,205,126,0.1),transparent 50%);
+    opacity:0;transition:opacity 0.45s ease;pointer-events:none;z-index:1;
+  }
+  .prod-card:hover::before { opacity:1; }
+  .prod-card:hover {
+    transform:translateY(-10px);
+    border-color:rgba(58,205,126,0.2);
+    box-shadow:
+      0 25px 50px -12px rgba(0,0,0,0.15),
+      0 0 0 1px rgba(58,205,126,0.1),
+      0 0 80px -20px rgba(58,205,126,0.08);
+  }
+  .dark .prod-card:hover {
+    box-shadow:
+      0 25px 50px -12px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(58,205,126,0.15),
+      0 0 80px -20px rgba(58,205,126,0.06);
   }
 
-  /* Overlay gradient on image */
-  .card-img-wrap::after {
-    content:'';position:absolute;bottom:0;left:0;right:0;height:50%;
-    background:linear-gradient(to top, rgba(0,0,0,0.4), transparent);
-    pointer-events:none;
-    opacity:0;transition:opacity 0.35s ease;
+  /* Image Container */
+  .prod-img-wrap {
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(135deg,#f8f9fa,#e9ecef);
+    height:240px;
   }
-  .product-card:hover .card-img-wrap::after {
-    opacity:1;
+  .dark .prod-img-wrap {
+    background:linear-gradient(135deg,#0d1410,#16161f);
   }
-
-  /* Quick-view button on hover */
-  .quick-view {
-    position:absolute;bottom:12px;left:50%;transform:translateX(-50%) translateY(10px);
-    opacity:0;transition:all 0.3s cubic-bezier(.4,0,.2,1);
-    pointer-events:none;
+  .prod-img-wrap img {
+    width:100%;height:100%;object-fit:cover;
+    transition:transform 0.7s cubic-bezier(.4,0,.2,1), filter 0.7s ease;
+    filter:brightness(0.95);
   }
-  .product-card:hover .quick-view {
-    opacity:1;transform:translateX(-50%) translateY(0);
-    pointer-events:auto;
+  .prod-card:hover .prod-img-wrap img {
+    transform:scale(1.1);
+    filter:brightness(1.05);
   }
 
-  /* Cart button */
+  /* Image gradient overlays */
+  .prod-img-wrap::before {
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.5) 100%);
+    z-index:2;pointer-events:none;
+    opacity:0;transition:opacity 0.45s ease;
+  }
+  .prod-card:hover .prod-img-wrap::before { opacity:1; }
+
+  .prod-img-wrap::after {
+    content:'';position:absolute;top:0;left:0;right:0;height:60%;
+    background:linear-gradient(180deg,rgba(255,255,255,0.2),transparent);
+    z-index:2;pointer-events:none;
+  }
+
+  /* Hover Action Bar */
+  .img-actions {
+    position:absolute;bottom:0;left:0;right:0;
+    z-index:3;
+    padding:16px;
+    transform:translateY(100%);
+    transition:transform 0.4s cubic-bezier(.4,0,.2,1);
+  }
+  .prod-card:hover .img-actions {
+    transform:translateY(0);
+  }
+
+  /* Price Tag */
+  .price-tag {
+    position:absolute;top:16px;right:16px;z-index:3;
+    background:rgba(10,10,15,0.75);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,0.08);
+    padding:6px 14px;border-radius:12px;
+    transition:all 0.3s ease;
+  }
+  .prod-card:hover .price-tag {
+    background:linear-gradient(135deg,#16b364,#0a9150);
+    border-color:transparent;
+    box-shadow:0 8px 20px -4px rgba(22,179,100,0.5);
+  }
+
+  /* Stock Badge */
+  .stock-badge {
+    position:absolute;top:16px;left:16px;z-index:3;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,0.08);
+  }
+
+  /* Action Button */
+  .action-btn {
+    width:44px;height:44px;border-radius:14px;
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:all 0.25s cubic-bezier(.4,0,.2,1);
+    font-size:14px;
+    border:1px solid rgba(255,255,255,0.15);
+    background:rgba(10,10,15,0.5);
+    color:#fff;
+  }
+  .action-btn:hover {
+    background:#fff;
+    color:#0a0a0f;
+    transform:translateY(-2px);
+    box-shadow:0 8px 20px -4px rgba(0,0,0,0.3);
+  }
+
+  /* Cart Button */
   .btn-cart {
     background:linear-gradient(135deg,#16b364,#0a9150);
     transition:all 0.25s cubic-bezier(.4,0,.2,1);
@@ -147,39 +237,54 @@ tailwind.config = {
   }
   .btn-cart::before {
     content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
     transition:left 0.5s ease;
   }
   .btn-cart:hover::before { left:100%; }
-  .btn-cart:hover { box-shadow:0 6px 20px -4px rgba(22,179,100,0.5); }
+  .btn-cart:hover {
+    box-shadow:0 8px 24px -4px rgba(22,179,100,0.5);
+    transform:translateY(-1px);
+  }
+
+  /* Description line clamp */
+  .line-clamp-2 {
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
 
   /* Fade in */
   .fade-up {
-    opacity:0;transform:translateY(16px);
-    animation:fadeUp 0.5s cubic-bezier(.4,0,.2,1) forwards;
+    opacity:0;transform:translateY(20px);
+    animation:fadeUp 0.6s cubic-bezier(.4,0,.2,1) forwards;
   }
   @keyframes fadeUp { to { opacity:1;transform:translateY(0); } }
 
-  /* Category badge pulse */
-  .cat-badge {
-    animation:badgePulse 3s ease-in-out infinite;
-  }
+  .cat-badge { animation:badgePulse 3s ease-in-out infinite; }
   @keyframes badgePulse {
     0%,100% { box-shadow:0 0 0 0 rgba(58,205,126,0.3); }
     50% { box-shadow:0 0 0 8px rgba(58,205,126,0); }
   }
 
-  /* Stat counter bar */
-  .stat-bar {
-    height:4px;border-radius:99px;overflow:hidden;
-    background:rgba(0,0,0,0.06);
-  }
+  .stat-bar { height:4px;border-radius:99px;overflow:hidden;background:rgba(0,0,0,0.06); }
   .dark .stat-bar { background:rgba(255,255,255,0.06); }
   .stat-bar-fill {
     height:100%;border-radius:99px;
     background:linear-gradient(90deg,#3acd7e,#16b364);
     transition:width 1s cubic-bezier(.4,0,.2,1);
   }
+
+  .role-badge {
+    font-size:9px;font-weight:700;letter-spacing:0.05em;
+    text-transform:uppercase;padding:2px 7px;border-radius:6px;
+  }
+  .role-admin { background:rgba(58,205,126,0.15); color:#3acd7e; }
+  .role-user { background:rgba(96,165,250,0.15); color:#60a5fa; }
+
+  .sidebar-collapsed .sidebar-text { opacity:0; width:0; overflow:hidden; }
+  .sidebar-collapsed .sidebar-logo-text { opacity:0; width:0; overflow:hidden; }
+  .sidebar-collapsed .sidebar-avatar { width:36px; height:36px; }
 </style>
 
 </head>
@@ -200,17 +305,19 @@ tailwind.config = {
   </div>
 
   <div class="px-5 py-4 flex items-center gap-3 border-t border-white/10">
-    <img src="../uploads/about.png" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0">
+    <img src="<?= $user_image ?>" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
     <div class="sidebar-text transition-all duration-300">
-      <p class="text-sm font-semibold leading-tight">Adil Khoso</p>
-      <p class="text-[11px] text-white/50 mt-0.5">Super Admin</p>
+      <div class="flex items-center gap-2">
+        <p class="text-sm font-semibold leading-tight"><?= htmlspecialchars($user_name) ?></p>
+        <span class="role-badge <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+      </div>
+      <p class="text-[11px] text-white/50 mt-0.5"><?= htmlspecialchars($user_email) ?></p>
     </div>
   </div>
 
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
-
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
-    <a href="../index.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
+    <a href="../dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
       <i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">Dashboard</span>
     </a>
@@ -224,15 +331,14 @@ tailwind.config = {
       <i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">View Categories</span>
     </a>
-    <a href="../product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
+    <a href="add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
       <i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">Add Product</span>
     </a>
-    <a href="../product/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
+    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
       <i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">View Products</span>
     </a>
-
   </nav>
 
   <div class="px-3 pb-5">
@@ -244,283 +350,224 @@ tailwind.config = {
       <p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p>
     </div>
   </div>
-
 </aside>
 
 <!-- ========== MAIN ========== -->
 <main id="main" class="ml-[260px] min-h-screen transition-all duration-300">
 
-  <!-- TOPBAR -->
   <header class="topbar-line sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
-
     <div>
       <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Category Products</h1>
       <p class="text-xs text-gray-400 mt-0.5">Browsing products in a specific category</p>
     </div>
-
     <div class="flex items-center gap-3">
-
       <button onclick="toggleDark()" id="darkBtn" class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-600 dark:text-white/70">
         <i class="fa-solid fa-moon text-sm"></i>
       </button>
-
       <div class="relative">
         <button onclick="toggleMenu()" class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
-          <img src="../uploads/about.png" class="w-8 h-8 rounded-lg object-cover">
+          <img src="<?= $user_image ?>" class="w-8 h-8 rounded-lg object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
           <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
         </button>
-        <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-2xl w-48 py-2 overflow-hidden dropdown-enter">
-          <div class="px-4 py-2.5 border-b border-gray-100 dark:border-white/5">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">Adil Khoso</p>
-            <p class="text-[11px] text-gray-400">admin@example.com</p>
+        <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-2xl w-52 py-2 overflow-hidden dropdown-enter">
+          <div class="px-4 py-3 border-b border-gray-100 dark:border-white/5">
+            <div class="flex items-center gap-3">
+              <img src="<?= $user_image ?>" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
+              <div>
+                <p class="text-sm font-semibold text-gray-900 dark:text-white"><?= htmlspecialchars($user_name) ?></p>
+                <p class="text-[11px] text-gray-400"><?= htmlspecialchars($user_email) ?></p>
+                <span class="role-badge mt-1 inline-block <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span>
+              </div>
+            </div>
           </div>
-          <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+          <a href="../profile.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition">
             <i class="fa-solid fa-user w-4 text-center text-xs"></i> Profile
           </a>
           <div class="border-t border-gray-100 dark:border-white/5 mt-1 pt-1">
-            <a href="#" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition">
+            <a href="../logout.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition">
               <i class="fa-solid fa-right-from-bracket w-4 text-center text-xs"></i> Logout
             </a>
           </div>
         </div>
       </div>
-
     </div>
   </header>
 
-  <!-- CONTENT -->
   <div class="px-8 py-6">
 
     <!-- BREADCRUMB -->
     <div class="flex items-center gap-2 text-xs text-gray-400 mb-5 fade-up">
-      <a href="../index.php" class="hover:text-brand-500 transition">Dashboard</a>
+      <a href="../dashboard.php" class="hover:text-brand-500 transition">Dashboard</a>
       <i class="fa-solid fa-chevron-right text-[8px] text-gray-300 dark:text-gray-700"></i>
       <a href="../category/view.php" class="hover:text-brand-500 transition">Categories</a>
       <i class="fa-solid fa-chevron-right text-[8px] text-gray-300 dark:text-gray-700"></i>
       <span class="text-gray-700 dark:text-white font-medium"><?= htmlspecialchars($cat['category_name']) ?></span>
     </div>
 
-    <!-- CATEGORY HEADER CARD -->
+    <!-- CATEGORY HEADER -->
     <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm p-6 mb-6">
-
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-
         <div class="flex items-center gap-4">
-
           <div class="cat-badge w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-950 flex items-center justify-center shrink-0">
             <i class="fa-solid fa-folder-open text-brand-500 text-xl"></i>
           </div>
-
           <div>
             <h2 class="text-xl font-extrabold text-gray-900 dark:text-white"><?= htmlspecialchars($cat['category_name']) ?></h2>
-            <p class="text-xs text-gray-400 mt-1 max-w-md leading-relaxed"><?= htmlspecialchars($cat['description'] ?? 'No description provided for this category.') ?></p>
+            <p class="text-xs text-gray-400 mt-1 max-w-md leading-relaxed"><?= htmlspecialchars($cat['description'] ?? 'No description provided.') ?></p>
           </div>
-
         </div>
-
         <div class="flex items-center gap-3 shrink-0">
           <a href="../category/view.php" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white/80 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition">
-            <i class="fa-solid fa-arrow-left text-xs"></i>
-            Back
+            <i class="fa-solid fa-arrow-left text-xs"></i> Back
           </a>
           <a href="add.php" class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-500/20">
-            <i class="fa-solid fa-plus text-xs"></i>
-            Add Product
+            <i class="fa-solid fa-plus text-xs"></i> Add Product
           </a>
         </div>
-
       </div>
-
-      <!-- Stats row -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-gray-100 dark:border-white/5">
-
         <div>
           <p class="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Products</p>
           <p class="text-lg font-extrabold text-gray-900 dark:text-white mt-1"><?= $product_count ?></p>
         </div>
-
         <div>
           <p class="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Status</p>
           <p class="text-sm font-semibold mt-1.5 flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full <?= ($cat['status'] ?? 'active') === 'active' ? 'bg-brand-400' : 'bg-red-400' ?>"></span>
-            <span class="<?= ($cat['status'] ?? 'active') === 'active' ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400' ?>">
-              <?= ucfirst($cat['status'] ?? 'active') ?>
-            </span>
+            <span class="<?= ($cat['status'] ?? 'active') === 'active' ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400' ?>"><?= ucfirst($cat['status'] ?? 'active') ?></span>
           </p>
         </div>
-
         <div>
-          <p class="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Parent</p>
-          <p class="text-sm font-semibold text-gray-700 dark:text-white/70 mt-1.5">
-            <?= !empty($cat['parent_id']) ? 'Sub-category' : 'Top-level' ?>
-          </p>
+          <p class="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Type</p>
+          <p class="text-sm font-semibold text-gray-700 dark:text-white/70 mt-1.5"><?= !empty($cat['parent_id']) ? 'Sub-category' : 'Top-level' ?></p>
         </div>
-
         <div>
           <p class="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Fill Rate</p>
           <div class="mt-2">
-            <?php
-              $fill = $product_count > 0 ? min(100, round(($product_count / max($product_count, 1)) * 100)) : 0;
-              /* Show relative fill — if products exist, show based on a nice bar */
-              $barWidth = $product_count > 0 ? min(100, $product_count * 10) : 0;
-            ?>
-            <div class="stat-bar">
-              <div class="stat-bar-fill" style="width:<?= $barWidth ?>%"></div>
-            </div>
+            <?php $barWidth = $product_count > 0 ? min(100, $product_count * 10) : 0; ?>
+            <div class="stat-bar"><div class="stat-bar-fill" style="width:<?= $barWidth ?>%"></div></div>
           </div>
         </div>
-
       </div>
-
     </div>
 
     <!-- SECTION HEADER -->
-    <div class="flex items-center justify-between mb-5 fade-up" style="animation-delay:0.08s">
+    <div class="flex items-center justify-between mb-6 fade-up" style="animation-delay:0.08s">
       <div>
         <h3 class="text-base font-bold text-gray-900 dark:text-white">All Products</h3>
         <p class="text-xs text-gray-400 mt-0.5"><?= $product_count ?> item<?= $product_count !== 1 ? 's' : '' ?> in this category</p>
-      </div>
-
-      <!-- Grid toggle -->
-      <div class="flex items-center bg-gray-100 dark:bg-white/5 rounded-xl p-1 gap-1">
-        <button id="gridBtn" onclick="setView('grid')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-white dark:bg-white/10 text-gray-700 dark:text-white shadow-sm transition">
-          <i class="fa-solid fa-grid-2 text-xs"></i>
-        </button>
-        <button id="listBtn" onclick="setView('list')" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-white/60 transition">
-          <i class="fa-solid fa-list text-xs"></i>
-        </button>
       </div>
     </div>
 
     <!-- PRODUCTS GRID -->
     <?php if ($product_count > 0) { ?>
 
-      <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
-        <?php
-          $delay = 0.12;
-          while ($product = mysqli_fetch_assoc($product_result)) {
-            $desc = htmlspecialchars($product['description'] ?? '');
-            $shortDesc = strlen($desc) > 60 ? substr($desc, 0, 60) . '...' : ($desc ?: 'No description');
-            $price = $product['price'];
-            $imgPath = "../uploads/" . $product['image'];
-        ?>
+      <?php
+        $delay = 0.1;
+        while ($product = mysqli_fetch_assoc($product_result)) {
+          $imgPath = "../uploads/" . $product['image'];
+          $stock = intval($product['stock'] ?? 0);
+          $inStock = $stock > 0;
+      ?>
 
-        <div class="product-card fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden" style="animation-delay:<?= $delay ?>s" data-view="grid">
+      <div class="prod-card fade-up" style="animation-delay:<?= $delay ?>s">
 
-          <!-- Image -->
-          <div class="card-img-wrap relative h-52 bg-gray-100 dark:bg-white/[0.02]">
-            <img
-              src="<?= $imgPath ?>"
-              alt="<?= htmlspecialchars($product['product_name']) ?>"
-              class="w-full h-full object-cover"
-              onerror="this.src='https://picsum.photos/seed/<?= $product['id'] ?>/400/300.jpg'"
-            >
-            <div class="quick-view">
-              <a href="#" class="inline-flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm text-gray-800 dark:text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg hover:bg-white dark:hover:bg-gray-800 transition">
-                <i class="fa-solid fa-eye text-[10px]"></i> Quick View
-              </a>
-            </div>
-            <!-- Price tag overlay -->
-            <div class="absolute top-3 right-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-3 py-1.5 rounded-xl">
-              <span class="text-sm font-extrabold text-brand-600 dark:text-brand-400">Rs. <?= number_format($price, 0) ?></span>
-            </div>
+        <!-- IMAGE -->
+        <div class="prod-img-wrap">
+          <img src="<?= $imgPath ?>" alt="<?= htmlspecialchars($product['product_name']) ?>" onerror="this.src='https://picsum.photos/seed/<?= $product['id'] ?>/500/500.jpg'">
+
+          <!-- Stock Badge -->
+          <div class="stock-badge px-3 py-1 rounded-xl flex items-center gap-1.5 text-[11px] font-bold
+            <?= $inStock
+              ? 'bg-black/40 text-white/90'
+              : 'bg-red-500/80 text-white' ?>">
+            <i class="fa-solid <?= $inStock ? 'fa-check-circle' : 'fa-xmark-circle' ?> text-[9px]"></i>
+            <?= $inStock ? 'In Stock (' . $stock . ')' : 'Out of Stock' ?>
           </div>
 
-          <!-- Body -->
-          <div class="p-4">
-            <h4 class="text-sm font-bold text-gray-900 dark:text-white leading-snug"><?= htmlspecialchars($product['product_name']) ?></h4>
-            <p class="text-xs text-gray-400 mt-1.5 leading-relaxed"><?= $shortDesc ?></p>
-
-            <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-white/5">
-
-              <div>
-                <p class="text-[10px] text-gray-400 uppercase tracking-wider">Price</p>
-                <p class="text-base font-extrabold text-gray-900 dark:text-white">Rs. <?= number_format($price, 0) ?></p>
-              </div>
-
-              <button class="btn-cart text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2">
-                <i class="fa-solid fa-cart-plus text-[10px]"></i>
-                Add to Cart
-              </button>
-
-            </div>
+          <!-- Price Tag -->
+          <div class="price-tag">
+            <span class="text-xs font-extrabold text-white">Rs. <?= number_format($product['price'], 0) ?></span>
           </div>
 
-        </div>
-
-        <!-- LIST VIEW (hidden by default) -->
-        <div class="product-card fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden hidden" style="animation-delay:<?= $delay ?>s" data-view="list">
-          <div class="flex items-center gap-4 p-4">
-
-            <div class="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 dark:bg-white/[0.02] shrink-0">
-              <img
-                src="<?= $imgPath ?>"
-                alt="<?= htmlspecialchars($product['product_name']) ?>"
-                class="w-full h-full object-cover"
-                onerror="this.src='https://picsum.photos/seed/<?= $product['id'] ?>/100/100.jpg'"
-              >
-            </div>
-
-            <div class="flex-1 min-w-0">
-              <h4 class="text-sm font-bold text-gray-900 dark:text-white truncate"><?= htmlspecialchars($product['product_name']) ?></h4>
-              <p class="text-xs text-gray-400 mt-0.5 truncate"><?= $shortDesc ?></p>
-            </div>
-
-            <div class="text-right shrink-0">
-              <p class="text-base font-extrabold text-brand-600 dark:text-brand-400">Rs. <?= number_format($price, 0) ?></p>
-              <button class="btn-cart text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 mt-1 ml-auto">
-                <i class="fa-solid fa-cart-plus text-[9px]"></i> Cart
-              </button>
-            </div>
-
+          <!-- Hover Action Bar -->
+          <div class="img-actions flex items-center justify-center gap-3">
+            <button class="action-btn" title="View Details">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="action-btn" title="Add to Cart">
+              <i class="fa-solid fa-bag-shopping"></i>
+            </button>
+            <button class="action-btn" title="Wishlist">
+              <i class="fa-regular fa-heart"></i>
+            </button>
           </div>
         </div>
 
-        <?php
-            $delay += 0.06;
-          }
-        ?>
+        <!-- BODY -->
+        <div class="p-5 relative z-10">
+
+          <h4 class="text-sm font-bold text-gray-900 dark:text-white leading-snug line-clamp-1"><?= htmlspecialchars($product['product_name']) ?></h4>
+
+          <p class="text-xs text-gray-400 mt-1.5 leading-relaxed line-clamp-2">
+            <?= htmlspecialchars($product['description'] ?? 'Premium quality product with exceptional performance.') ?>
+          </p>
+
+          <!-- Divider -->
+          <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-100 dark:border-white/5">
+
+            <div>
+              <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Price</p>
+              <p class="text-lg font-extrabold text-brand-500 mt-0.5">Rs. <?= number_format($product['price'], 0) ?></p>
+            </div>
+
+            <button class="btn-cart text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-2 <?= !$inStock ? 'opacity-50 cursor-not-allowed' : '' ?>">
+              <i class="fa-solid fa-bag-shopping text-[10px]"></i>
+              <?= $inStock ? 'Add to Cart' : 'Unavailable' ?>
+            </button>
+
+          </div>
+
+        </div>
 
       </div>
+
+      <?php
+          $delay += 0.06;
+        }
+      ?>
+
+    </div>
 
     <?php } else { ?>
 
-      <!-- EMPTY STATE -->
-      <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm p-16 text-center">
-
-        <div class="w-20 h-20 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-5">
-          <i class="fa-solid fa-box-open text-gray-300 dark:text-gray-700 text-3xl"></i>
-        </div>
-
-        <h3 class="text-lg font-bold text-gray-700 dark:text-white/60">No Products Yet</h3>
-        <p class="text-sm text-gray-400 mt-2 max-w-sm mx-auto leading-relaxed">
-          This category doesn't have any products. Start by adding the first one.
-        </p>
-
-        <div class="flex items-center justify-center gap-3 mt-6">
-          <a href="add.php" class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-sm font-semibold px-6 py-3 rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-500/20">
-            <i class="fa-solid fa-plus text-xs"></i>
-            Add Product
-          </a>
-          <a href="../category/view.php" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 px-5 py-3 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition">
-            <i class="fa-solid fa-arrow-left text-xs"></i>
-            Back to Categories
-          </a>
-        </div>
-
+    <!-- EMPTY STATE -->
+    <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm p-16 text-center">
+      <div class="w-20 h-20 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-5">
+        <i class="fa-solid fa-box-open text-gray-300 dark:text-gray-700 text-3xl"></i>
       </div>
+      <h3 class="text-lg font-bold text-gray-700 dark:text-white/60">No Products Yet</h3>
+      <p class="text-sm text-gray-400 mt-2 max-w-sm mx-auto leading-relaxed">
+        This category doesn't have any products. Start by adding the first one.
+      </p>
+      <div class="flex items-center justify-center gap-3 mt-6">
+        <a href="add.php" class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-sm font-semibold px-6 py-3 rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-500/20">
+          <i class="fa-solid fa-plus text-xs"></i> Add Product
+        </a>
+        <a href="../category/view.php" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 px-5 py-3 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition">
+          <i class="fa-solid fa-arrow-left text-xs"></i> Back
+        </a>
+      </div>
+    </div>
 
     <?php } ?>
 
   </div>
-
 </main>
 
-<!-- ========== SCRIPTS ========== -->
 <script>
-
-/* Sidebar Toggle */
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const main = document.getElementById('main');
@@ -528,8 +575,6 @@ function toggleSidebar() {
   sidebar.style.width = collapsed ? '78px' : '260px';
   main.style.marginLeft = collapsed ? '78px' : '260px';
 }
-
-/* Dark Mode */
 function toggleDark() {
   const html = document.documentElement;
   const body = document.body;
@@ -540,8 +585,6 @@ function toggleDark() {
     ? '<i class="fa-solid fa-sun text-sm"></i>'
     : '<i class="fa-solid fa-moon text-sm"></i>';
 }
-
-/* Profile Menu */
 function toggleMenu() {
   document.getElementById('menu').classList.toggle('hidden');
 }
@@ -551,50 +594,16 @@ document.addEventListener('click', function(e) {
     menu.classList.add('hidden');
   }
 });
-
-/* Grid / List View Toggle */
-function setView(mode) {
-  const gridBtn = document.getElementById('gridBtn');
-  const listBtn = document.getElementById('listBtn');
-  const grid = document.getElementById('productsGrid');
-
-  if (!grid) return;
-
-  const cards = grid.querySelectorAll('[data-view]');
-
-  if (mode === 'grid') {
-    grid.className = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5';
-    gridBtn.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-white dark:bg-white/10 text-gray-700 dark:text-white shadow-sm transition';
-    listBtn.className = 'w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-white/60 transition';
-    cards.forEach(c => {
-      if (c.dataset.view === 'list') c.classList.add('hidden');
-      if (c.dataset.view === 'grid') c.classList.remove('hidden');
-    });
-  } else {
-    grid.className = 'grid grid-cols-1 gap-3';
-    listBtn.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-white dark:bg-white/10 text-gray-700 dark:text-white shadow-sm transition';
-    gridBtn.className = 'w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-white/60 transition';
-    cards.forEach(c => {
-      if (c.dataset.view === 'grid') c.classList.add('hidden');
-      if (c.dataset.view === 'list') c.classList.remove('hidden');
-    });
-  }
-}
-
-/* Animate stat bar on load */
 window.addEventListener('load', function() {
   const bar = document.querySelector('.stat-bar-fill');
   if (bar) {
     const target = bar.style.width;
     bar.style.width = '0%';
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        bar.style.width = target;
-      });
+      requestAnimationFrame(() => { bar.style.width = target; });
     });
   }
 });
-
 </script>
 
 </body>

@@ -2,30 +2,56 @@
 session_start();
 include("../backend/config/db.php");
 
-/* CATEGORIES */
+/* ================= CATEGORIES ================= */
  $cat_query = "SELECT * FROM categories";
  $cat_result = mysqli_query($conn, $cat_query);
 
-/* PRODUCTS FILTER */
+/* ================= PRODUCTS FILTER (WITH REVIEWS) ================= */
 if (isset($_GET['cat_id']) && $_GET['cat_id'] !== "") {
     $cat_id = intval($_GET['cat_id']);
-    $product_query = "SELECT p.*, c.category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.category_id = $cat_id ORDER BY p.id DESC";
+    $product_query = "
+    SELECT p.*, c.category_name,
+    IFNULL(AVG(r.rating),0) as avg_rating,
+    COUNT(r.id) as total_reviews
+    FROM products p 
+    JOIN categories c ON p.category_id = c.id
+    LEFT JOIN reviews r ON p.id = r.product_id
+    WHERE p.category_id = $cat_id
+    GROUP BY p.id
+    ORDER BY p.id DESC";
     $active_cat = $cat_id;
 } else {
-    $product_query = "SELECT p.*, c.category_name FROM products p JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC";
+    $product_query = "
+    SELECT p.*, c.category_name,
+    IFNULL(AVG(r.rating),0) as avg_rating,
+    COUNT(r.id) as total_reviews
+    FROM products p 
+    JOIN categories c ON p.category_id = c.id
+    LEFT JOIN reviews r ON p.id = r.product_id
+    GROUP BY p.id
+    ORDER BY p.id DESC";
     $active_cat = 0;
 }
+
  $product_result = mysqli_query($conn, $product_query);
  $product_count = mysqli_num_rows($product_result);
 
-/* ACTIVE CATEGORY NAME */
+/* ================= ACTIVE CATEGORY ================= */
  $active_cat_name = 'All Products';
 if ($active_cat > 0) {
     $ac = mysqli_fetch_assoc(mysqli_query($conn, "SELECT category_name FROM categories WHERE id = $active_cat"));
     if ($ac) $active_cat_name = $ac['category_name'];
 }
 
- $count = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0;
+/* ================= CART COUNT (DB + SESSION) ================= */
+if (isset($_SESSION['user_id'])) {
+    $uid = $_SESSION['user_id'];
+    $res = mysqli_query($conn, "SELECT SUM(quantity) as total FROM cart WHERE user_id = $uid");
+    $row = mysqli_fetch_assoc($res);
+    $count = $row['total'] ?? 0;
+} else {
+    $count = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0;
+}
 ?>
 
 <!DOCTYPE html>
@@ -36,7 +62,7 @@ if ($active_cat > 0) {
 <title>Beats Shop — Premium Audio</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family+Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <script>
@@ -245,7 +271,7 @@ tailwind.config = {
 
   <div class="max-w-7xl mx-auto flex items-center justify-between">
 
-    <a href="index.php" class="flex items-center gap-3 text-decoration-none">
+    <a href="index.php" class="flex items-center gap-3" style="text-decoration:none">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
         <i class="fa-solid fa-headphones text-surface-900 text-sm"></i>
       </div>
@@ -343,7 +369,7 @@ tailwind.config = {
       <div class="flex-1 flex justify-center fade-up" style="animation-delay:0.15s">
         <div class="relative">
           <div class="absolute inset-0 bg-gradient-to-br from-gold-400/20 to-transparent rounded-full blur-3xl scale-75"></div>
-          <img src="../backend/uploads/image5.png" alt="Featured Product" class="hero-img relative w-80 lg:w-[420px] drop-shadow-2xl">
+          <img src="../backend/uploads/image5.png" alt="Featured Product" class="hero-img relative w-80 lg:w-[420px] drop-shadow-2xl" onerror="this.src='https://picsum.photos/seed/hero-beats/500/500.jpg'">
         </div>
       </div>
 
@@ -384,7 +410,6 @@ tailwind.config = {
     </div>
 
   </div>
-
 </section>
 
 
@@ -407,6 +432,7 @@ tailwind.config = {
         while ($product = mysqli_fetch_assoc($product_result)) {
           $delay += 0.06;
           $imgPath = "../backend/uploads/" . $product['image'];
+          $avg = round($product['avg_rating'], 1);
       ?>
 
       <div class="prod-card fade-up" style="animation-delay:<?= $delay ?>s">
@@ -430,6 +456,22 @@ tailwind.config = {
             <?= htmlspecialchars($product['description'] ?? 'Premium quality product with exceptional performance.') ?>
           </p>
 
+          <?php if ($product['total_reviews'] > 0) { ?>
+          <div class="flex items-center gap-1.5 mt-2.5">
+            <div class="flex items-center gap-0.5">
+              <?php for ($i = 1; $i <= 5; $i++) {
+                if ($i <= floor($avg)) { ?>
+                  <i class="fa-solid fa-star text-gold-400 text-[9px]"></i>
+              <?php } elseif ($i - 0.5 <= $avg) { ?>
+                  <i class="fa-solid fa-star-half-stroke text-gold-400 text-[9px]"></i>
+              <?php } else { ?>
+                  <i class="fa-regular fa-star text-white/10 text-[9px]"></i>
+              <?php } } ?>
+            </div>
+            <span class="text-[10px] text-white/25 font-medium"><?= $avg ?> (<?= $product['total_reviews'] ?>)</span>
+          </div>
+          <?php } ?>
+
           <div class="flex items-end justify-between mt-4 pt-4 border-t border-white/5">
 
             <div>
@@ -441,9 +483,9 @@ tailwind.config = {
               <a href="product_detail.php?id=<?= $product['id'] ?>" class="btn-view w-10 h-10 flex items-center justify-center" title="View Details">
                 <i class="fa-solid fa-eye text-xs"></i>
               </a>
-              <a href="add_to_cart.php?id=<?= $product['id'] ?>" class="btn-cart w-10 h-10 flex items-center justify-center" title="Add to Cart">
+              <button data-add-cart="<?= $product['id'] ?>" class="btn-cart w-10 h-10 flex items-center justify-center" title="Add to Cart">
                 <i class="fa-solid fa-bag-shopping text-xs"></i>
-              </a>
+              </button>
             </div>
 
           </div>
@@ -482,7 +524,7 @@ tailwind.config = {
     <div class="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
 
       <div class="col-span-2 md:col-span-1">
-        <a href="index.php" class="flex items-center gap-3 mb-4 text-decoration-none">
+        <a href="index.php" class="flex items-center gap-3 mb-4" style="text-decoration:none">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center">
             <i class="fa-solid fa-headphones text-surface-900 text-xs"></i>
           </div>
@@ -510,7 +552,7 @@ tailwind.config = {
         <?php
           mysqli_data_seek($cat_result, 0);
           $catCount = 0;
-          while ($cat = mysqli_fetch_assoc($cat_result) && $catCount < 5) {
+          while (($cat = mysqli_fetch_assoc($cat_result)) && $catCount < 5) {
             $catCount++;
         ?>
           <span class="footer-link cursor-pointer" onclick="loadCategory(<?= $cat['id'] ?>);document.getElementById('products').scrollIntoView({behavior:'smooth'})"><?= htmlspecialchars($cat['category_name']) ?></span>
@@ -560,7 +602,6 @@ function loadCategory(catId) {
 
   clearBtn.classList.toggle('hidden', catId === 0);
 
-  /* Skeleton loading */
   grid.innerHTML = '';
   for (var i = 0; i < 4; i++) {
     grid.innerHTML += '<div class="rounded-2xl overflow-hidden border border-white/[0.04] bg-[#101018]"><div class="skeleton" style="height:260px"></div><div class="p-5 space-y-3"><div class="skeleton h-4 w-3/4 rounded-lg"></div><div class="skeleton h-3 w-full rounded-lg"></div><div class="skeleton h-3 w-5/6 rounded-lg"></div><div class="pt-4 mt-4 border-t border-white/5 flex justify-between items-end"><div><div class="skeleton h-3 w-12 mb-2 rounded-lg"></div><div class="skeleton h-6 w-20 rounded-lg"></div></div><div class="flex gap-2"><div class="skeleton w-10 h-10 rounded-xl"></div><div class="skeleton w-10 h-10 rounded-xl"></div></div></div></div></div>';
@@ -607,6 +648,74 @@ window.addEventListener('popstate', function(e) {
   var catId = (e.state && e.state.cat_id !== undefined) ? e.state.cat_id : 0;
   currentCat = -1;
   loadCategory(catId);
+});
+
+
+/* ===== AJAX ADD TO CART ===== */
+document.addEventListener('click', function(e) {
+  var cartBtn = e.target.closest('.btn-cart[data-add-cart]');
+  if (!cartBtn) return;
+  e.preventDefault();
+
+  var pid = cartBtn.dataset.addCart;
+  var origHTML = cartBtn.innerHTML;
+
+  cartBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
+  cartBtn.style.pointerEvents = 'none';
+
+  var formData = new FormData();
+  formData.append('product_id', pid);
+  formData.append('quantity', 1);
+
+  fetch('add_to_cart.php', {
+    method: 'POST',
+    body: formData
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+
+      if (data.success) {
+
+        cartBtn.innerHTML = '<i class="fa-solid fa-check text-xs"></i>';
+        cartBtn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+
+        var badge = document.querySelector('a[href="cart.php"] .cart-pulse');
+        if (badge) {
+          badge.textContent = data.cart_count;
+          badge.classList.remove('cart-pulse');
+          void badge.offsetWidth;
+          badge.classList.add('cart-pulse');
+        } else {
+          var cartLink = document.querySelector('a[href="cart.php"]');
+          if (cartLink) {
+            var span = document.createElement('span');
+            span.className = 'cart-pulse absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 text-surface-900 text-[10px] font-extrabold flex items-center justify-center';
+            span.textContent = data.cart_count;
+            cartLink.appendChild(span);
+          }
+        }
+
+        setTimeout(function() {
+          cartBtn.innerHTML = origHTML;
+          cartBtn.style.background = '';
+          cartBtn.style.pointerEvents = '';
+        }, 1500);
+
+      } else {
+        cartBtn.innerHTML = '<i class="fa-solid fa-xmark text-xs"></i>';
+        cartBtn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+        setTimeout(function() {
+          cartBtn.innerHTML = origHTML;
+          cartBtn.style.background = '';
+          cartBtn.style.pointerEvents = '';
+        }, 1200);
+      }
+    })
+    .catch(function() {
+      cartBtn.innerHTML = origHTML;
+      cartBtn.style.pointerEvents = '';
+      window.location.href = 'add_to_cart.php';
+    });
 });
 
 
