@@ -69,7 +69,11 @@ while ($item = mysqli_fetch_assoc($items_res)) {
 /* ===== STATUS UPDATE ===== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $new_status = mysqli_real_escape_string($conn, $_POST['new_status']);
-    mysqli_query($conn, "UPDATE orders SET status = '$new_status', updated_at = NOW() WHERE id = $order_id");
+    if ($new_status === 'delivered') {
+        mysqli_query($conn, "UPDATE orders SET status = '$new_status', payment_status = 'paid' WHERE id = $order_id");
+    } else {
+        mysqli_query($conn, "UPDATE orders SET status = '$new_status' WHERE id = $order_id");
+    }
     $_SESSION['toast'] = ['type' => 'success', 'message' => 'Order status updated to ' . ucfirst($new_status)];
     header("Location: order-detail.php?id=$order_id");
     exit;
@@ -88,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
 <script>
 tailwind.config = {
   darkMode: 'class',
-  theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }, colors: { brand: { 50:'#edfcf2',100:'#d3f8e0',200:'#aaf0c6',300:'#73e2a5',400:'#3acd7e',500:'#16b364',600:'#0a9150',700:'#087442',800:'#095c37',900:'#084b2e',950:'#032a1a' }}}}}
+  theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }, colors: { brand: { 50:'#edfcf2',100:'#d3f8e0',200:'#aaf0c6',300:'#73e2a5',400:'#3acd7e',500:'#16b364',600:'#0a9150',700:'#087442,800:'#095c37,900:'#084b2e',950:'#032a1a' }}}}}
 </script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Plus Jakarta Sans',sans-serif}
@@ -304,6 +308,9 @@ tailwind.config = {
               <span class="text-xs text-gray-400">Status</span>
               <?php 
                 $pay_status = $order['payment_status'] ?? 'pending';
+                if ($order['status'] === 'delivered' && $pay_status !== 'failed') {
+                    $pay_status = 'paid';
+                }
                 $pay_color = $pay_status === 'paid' ? 'text-green-500 bg-green-50 dark:bg-green-500/5' : ($pay_status === 'failed' ? 'text-red-500 bg-red-50 dark:bg-red-500/5' : 'text-amber-500 bg-amber-50 dark:bg-amber-500/5');
               ?>
               <span class="text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg <?= $pay_color ?>"><?= ucfirst($pay_status) ?></span>
