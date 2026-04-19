@@ -2,37 +2,51 @@
 session_start();
 include("../backend/config/db.php");
 
+date_default_timezone_set("Asia/Karachi");
+
 if (isset($_SESSION['user_id'])) {
-    header("Location: user_dashboard.php");
+    header("Location: login.php");
     exit;
 }
 
- $token = isset($_GET['token']) ? trim($_GET['token']) : '';
- $error = "";
- $success = "";
- $token_valid = false;
- $reset_email = "";
+$token = $_GET['token'] ?? '';
 
+$error = "";
+$success = "";
+$token_valid = false;
+$reset_email = "";
+
+/* ================= TOKEN CHECK ================= */
 if (empty($token)) {
     $error = "Invalid or missing reset token.";
 } else {
-    $stmt = $conn->prepare("SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW()");
+
+    // ❌ FIX: removed NOW()
+    $stmt = $conn->prepare("SELECT * FROM password_resets WHERE token = ?");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
     $reset = $result->fetch_assoc();
 
     if (!$reset) {
-        $error = "This reset link is invalid or expired. <a href='forgot_password.php' class='underline font-semibold'>Request a new one</a>.";
+        $error = "This reset link is invalid. Request a new one.";
     } else {
-        $token_valid = true;
-        $reset_email = $reset['email'];
+
+        // ✅ correct PHP time check
+        if (strtotime($reset['expires_at']) < time()) {
+            $error = "This reset link has expired. Request a new one.";
+        } else {
+            $token_valid = true;
+            $reset_email = $reset['email'];
+        }
     }
 }
 
+/* ================= PASSWORD RESET ================= */
 if ($token_valid && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $new_password = trim($_POST['new_password']);
-    $confirm_password = trim($_POST['confirm_password']);
+
+    $new_password = $_POST['new_password'];
+    $confirm_password = $_POST['confirm_password'];
 
     if (empty($new_password) || empty($confirm_password)) {
         $error = "Both password fields are required.";
@@ -41,90 +55,21 @@ if ($token_valid && $_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($new_password !== $confirm_password) {
         $error = "Passwords do not match.";
     } else {
+
         $hashed = password_hash($new_password, PASSWORD_DEFAULT);
 
+        // update password
         $upd = $conn->prepare("UPDATE users SET password = ? WHERE email = ?");
         $upd->bind_param("ss", $hashed, $reset_email);
         $upd->execute();
 
-        // Token delete
+        // delete token
         $del = $conn->prepare("DELETE FROM password_resets WHERE email = ?");
         $del->bind_param("s", $reset_email);
         $del->execute();
 
-        // ✅ User ka naam nikalo email ke liye
-        $nameStmt = $conn->prepare("SELECT name FROM users WHERE email = ?");
-        $nameStmt->bind_param("s", $reset_email);
-        $nameStmt->execute();
-        $nameRes = $nameStmt->get_result();
-        $userRow = $nameRes->fetch_assoc();
-        $user_name = $userRow ? htmlspecialchars($userRow['name']) : "User";
-
-        // ✅ Confirmation email bhejo
-        $site_name = "Commerce";
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
-        $login_link = $protocol . "://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/login.php";
-
-        $subject = "Password Changed Successfully - " . $site_name;
-
-        $email_body = "
-        <div style='font-family:Plus Jakarta Sans,Arial,sans-serif; max-width:480px; margin:0 auto; background:#f9fafb; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb;'>
-            <div style='background:linear-gradient(135deg,#16b364,#0a9150); padding:32px 24px; text-align:center;'>
-                <div style='width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;'>
-                    <span style='color:#fff;font-size:22px;'>&#9989;</span>
-                </div>
-                <h1 style='color:#fff;font-size:20px;font-weight:800;margin:0;'>Password Changed</h1>
-            </div>
-            <div style='padding:32px 24px;'>
-                <p style='color:#374151;font-size:14px;line-height:1.6;margin:0 0 16px;'>
-                    Hello <strong>{$user_name}</strong>,
-                </p>
-                <p style='color:#374151;font-size:14px;line-height:1.6;margin:0 0 24px;'>
-                    Your password has been successfully changed. If you did not make this change, please contact us immediately.
-                </p>
-                <div style='background:#edfcf2;border:1px solid #aaf0c6;border-radius:12px;padding:16px;margin:24px 0;'>
-                    <div style='display:flex;align-items:center;gap:10px;'>
-                        <div style='width:36px;height:36px;background:#16b364;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>
-                            <span style='color:#fff;font-size:16px;'>&#128274;</span>
-                        </div>
-                        <div>
-                            <p style='color:#087442;font-size:13px;font-weight:700;margin:0 0 2px;'>Account Secured</p>
-                            <p style='color:#0a9150;font-size:12px;margin:0;'>Your account is protected with the new password</p>
-                        </div>
-                    </div>
-                </div>
-                <div style='text-align:center;margin:28px 0;'>
-                    <a href='{$login_link}' style='display:inline-block;background:linear-gradient(135deg,#16b364,#0a9150);color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 8px 24px -6px rgba(22,179,100,0.45);'>
-                        Sign In to Your Account
-                    </a>
-                </div>
-                <div style='border-top:1px solid #e5e7eb;padding-top:16px;margin-top:8px;'>
-                    <p style='color:#9ca3af;font-size:11px;margin:0 0 4px;line-height:1.5;'>
-                        <strong>When did this happen?</strong>
-                    </p>
-                    <p style='color:#6b7280;font-size:12px;margin:0;line-height:1.5;'>
-                        " . date('l, F j, Y') . " at " . date('g:i A') . "
-                    </p>
-                </div>
-                <div style='border-top:1px solid #e5e7eb;padding-top:16px;margin-top:16px;'>
-                    <p style='color:#9ca3af;font-size:11px;margin:0;line-height:1.5;'>
-                        If you didn't change your password, your account may be compromised. Please contact support immediately.
-                    </p>
-                </div>
-            </div>
-            <div style='background:#f3f4f6;padding:16px 24px;text-align:center;'>
-                <p style='color:#9ca3af;font-size:11px;margin:0;'>&copy; " . date('Y') . " {$site_name}. All rights reserved.</p>
-            </div>
-        </div>";
-
-        $headers  = "MIME-Version: 1.0\r\n";
-        $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-        $headers .= "From: noreply@" . $_SERVER['HTTP_HOST'] . "\r\n";
-
-        mail($reset_email, $subject, $email_body, $headers);
-
+        $success = "Password has been reset successfully!";
         $token_valid = false;
-        $success = "Your password has been reset successfully!";
     }
 }
 ?>

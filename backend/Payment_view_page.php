@@ -23,17 +23,16 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../login.php"); exit; }
  $where = "1=1";
 if ($status_filter) $where .= " AND p.status = '$status_filter'";
 if ($method_filter) $where .= " AND p.method = '$method_filter'";
-if ($search) $where .= " AND (p.transaction_id LIKE '%$search%' OR p.sender_name LIKE '%$search%' OR p.sender_number LIKE '%$search%' OR p.amount LIKE '%$search%' OR o.order_number LIKE '%$search%')";
+if ($search) $where .= " AND (p.transaction_id LIKE '%$search%' OR p.sender_name LIKE '%$search%' OR p.sender_number LIKE '%$search%' OR p.amount LIKE '%$search%')";
 
- $total_res = mysqli_query($conn, "SELECT COUNT(*) as c FROM payments p LEFT JOIN orders o ON p.order_id = o.id WHERE $where");
+ $total_res = mysqli_query($conn, "SELECT COUNT(*) as c FROM payments p WHERE $where");
  $total_payments = mysqli_fetch_assoc($total_res)['c'];
  $total_pages = ceil($total_payments / $limit);
 
  $payments_res = mysqli_query($conn, "
-    SELECT p.*, u.name as user_name, u.email as user_email, o.order_number
+    SELECT p.*, u.name as user_name, u.email as user_email
     FROM payments p
     LEFT JOIN users u ON p.user_id = u.id
-    LEFT JOIN orders o ON p.order_id = o.id
     WHERE $where
     ORDER BY p.created_at DESC
     LIMIT $limit OFFSET $offset
@@ -64,7 +63,6 @@ if ($search) $where .= " AND (p.transaction_id LIKE '%$search%' OR p.sender_name
 tailwind.config = {
   darkMode: 'class',
   theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }, colors: { brand: { 50:'#edfcf2',100:'#d3f8e0',200:'#aaf0c6',300:'#73e2a5',400:'#3acd7e',500:'#16b364',600:'#0a9150',700:'#087442',800:'#095c37',900:'#084b2e',950:'#032a1a' }}}}}
-
 </script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Plus Jakarta Sans',sans-serif}
@@ -122,15 +120,15 @@ tailwind.config = {
   </div>
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
-    <a href="../dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
+    <a href="dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
     <?php if ($user_role === 'Admin') { ?>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Manage</p>
-    <a href="../category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
-    <a href="../category/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
-    <a href="../product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
-    <a href="../product/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
+    <a href="category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
+    <a href="category/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
+    <a href="product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
+    <a href="product/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Sales</p>
-    <a href="../orders/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
+    <a href="Order.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
     <a href="view.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span>
       <?php if ($counts['pending'] > 0): ?><span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full sidebar-text transition-all duration-300"><?= $counts['pending'] ?></span><?php endif; ?>
     </a>
@@ -225,7 +223,7 @@ tailwind.config = {
               <td class="px-5 py-3.5">
                 <p class="text-xs font-bold text-gray-900 dark:text-white font-mono">#PAY-<?= str_pad($row['id'], 4, '0', STR_PAD_LEFT) ?></p>
                 <?php if ($row['transaction_id']): ?><p class="text-[10px] text-gray-400 font-mono mt-0.5"><?= htmlspecialchars($row['transaction_id']) ?></p><?php endif; ?>
-                <?php if ($row['order_number']): ?><a href="../orders/detail.php?id=<?= $row['order_id'] ?>" class="text-[10px] text-brand-500 hover:underline"><?= htmlspecialchars($row['order_number']) ?></a><?php endif; ?>
+                <?php if (!empty($row['notes'])): ?><p class="text-[10px] text-gray-400 mt-0.5 truncate max-w-[140px]" title="<?= htmlspecialchars($row['notes']) ?>"> <?= htmlspecialchars($row['notes']) ?></p><?php endif; ?>
               </td>
               <td class="px-5 py-3.5">
                 <p class="text-xs font-semibold text-gray-800 dark:text-white"><?= htmlspecialchars($row['user_name'] ?? 'Unknown') ?></p>
@@ -238,7 +236,7 @@ tailwind.config = {
                 <p class="text-[10px] text-gray-400"><?= htmlspecialchars($row['sender_number'] ?? '-') ?></p>
               </td>
               <td class="px-5 py-3.5">
-                <?php if ($row['proof_image']): ?>
+                <?php if (!empty($row['proof_image'])): ?>
                   <img src="../uploads/payments/<?= htmlspecialchars($row['proof_image']) ?>" class="proof-thumb" onclick="openLightbox(this.src)" onerror="this.style.display='none'">
                 <?php else: ?>
                   <span class="text-[10px] text-gray-300">No proof</span>

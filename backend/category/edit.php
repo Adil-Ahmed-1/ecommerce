@@ -1,8 +1,12 @@
 <?php
 session_start();
-include("config/db.php");
+include("../../config/db.php");
 
-if (!isset($_SESSION['user_id'])) { header("Location: ../user/login.php"); exit; }
+if (!isset($_SESSION['user_id'])) { header("Location: ../../user/login.php"); exit; }
+
+ $id = (int)$_GET['id'];
+ $cat = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM categories WHERE id = $id"));
+if (!$cat) { $_SESSION['toast'] = ['type'=>'error','message'=>'Category not found']; header("Location: view.php"); exit; }
 
  $uid = $_SESSION['user_id'];
  $user_res = mysqli_query($conn, "SELECT name, email, image, role FROM users WHERE id = $uid");
@@ -12,33 +16,32 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../user/login.php"); exit;
  $user_image = !empty($user['image']) ? 'uploads/' . $user['image'] : 'https://ui-avatars.com/api/?name=' . urlencode($user_name) . '&background=16b364&color=fff&bold=true';
  $user_role = ucfirst($user['role'] ?? 'user');
 
- $cats_res = mysqli_query($conn, "SELECT id, name FROM categories WHERE status = 'active' ORDER BY name ASC");
  $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = mysqli_real_escape_string($conn, trim($_POST['name']));
-    $category_id = (int)$_POST['category_id'];
-    $price = (float)$_POST['price'];
-    $discount_price = !empty($_POST['discount_price']) ? (float)$_POST['discount_price'] : 0;
-    $description = mysqli_real_escape_string($conn, trim($_POST['description']));
+    $slug = !empty($_POST['slug']) ? mysqli_real_escape_string($conn, trim($_POST['slug'])) : strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
     $status = mysqli_real_escape_string($conn, $_POST['status']);
 
-    if (empty($name)) $error = 'Product name is required';
-    elseif ($category_id < 1) $error = 'Select a category';
-    elseif ($price <= 0) $error = 'Price must be greater than 0';
+    if (empty($name)) { $error = 'Category name is required'; }
     else {
-        $image = '';
-        if (!empty($_FILES['image']['name'])) {
-            $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-            if (in_array($ext, ['jpg','jpeg','png','webp','gif'])) {
-                $image = time() . '_' . rand(1000,9999) . '.' . $ext;
-                move_uploaded_file($_FILES['image']['tmp_name'], 'uploads/' . $image);
-            } else { $error = 'Invalid image format'; }
-        }
-        if (!$error) {
-            mysqli_query($conn, "INSERT INTO products (category_id, name, price, discount_price, image, description, status, created_at) VALUES ($category_id, '$name', $price, $discount_price, '$image', '$description', '$status', NOW())");
-            $_SESSION['toast'] = ['type'=>'success','message'=>'Product added successfully'];
-            header("Location: sproduct/view.php"); exit;
+        $check = mysqli_query($conn, "SELECT id FROM categories WHERE name = '$name' AND id != $id");
+        if (mysqli_num_rows($check) > 0) { $error = 'Category name already exists'; }
+        else {
+            $image = $cat['image'];
+            if (!empty($_FILES['image']['name'])) {
+                $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg','jpeg','png','webp','gif'])) {
+                    if (!empty($cat['image']) && file_exists('../../uploads/' . $cat['image'])) unlink('../../uploads/' . $cat['image']);
+                    $image = time() . '_' . rand(1000,9999) . '.' . $ext;
+                    move_uploaded_file($_FILES['image']['tmp_name'], '../../uploads/' . $image);
+                } else { $error = 'Invalid image format'; }
+            }
+            if (!$error) {
+                mysqli_query($conn, "UPDATE categories SET name='$name', slug='$slug', image='$image', status='$status' WHERE id=$id");
+                $_SESSION['toast'] = ['type'=>'success','message'=>'Category updated'];
+                header("Location: view.php"); exit;
+            }
         }
     }
 }
@@ -48,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Add Product</title>
+<title>Edit Category</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -76,7 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .form-input:focus{border-color:#16b364;box-shadow:0 0 0 3px rgba(22,179,100,0.1)}
   .form-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px}
   .dark .form-label{color:rgba(255,255,255,0.7)}
-  textarea.form-input{resize:vertical;min-height:100px}
   .upload-zone{border:2px dashed #d1d5db;border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:all .2s}
   .dark .upload-zone{border-color:rgba(255,255,255,0.1)}
   .upload-zone:hover{border-color:#16b364;background:rgba(22,179,100,0.03)}
@@ -101,17 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
-    <a href="dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
-    <?php if ($user_role === 'Admin') { ?>
+    <a href="../dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Manage</p>
-    <a href="category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
-    <a href="category/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
-    <a href="product/add.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
-    <a href="sproduct/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
+    <a href="add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
+    <a href="view.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
+    <a href="../product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
+    <a href="../sproduct/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Sales</p>
-    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
-    <a href="payments.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
-    <?php } ?>
+    <a href="../view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
+    <a href="../payments.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
   </nav>
   <div class="px-3 pb-5"><div class="sidebar-text bg-white/5 rounded-xl p-4 transition-all duration-300"><p class="text-[11px] text-white/40 mb-1">Storage Used</p><div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full w-[38%] bg-gradient-to-r from-brand-400 to-brand-300 rounded-full"></div></div><p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p></div></div>
 </aside>
@@ -120,8 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main id="main" class="ml-[260px] min-h-screen transition-all duration-300">
   <header class="topbar-border sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
     <div class="flex items-center gap-3">
-      <a href="sproduct/view.php" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-500 dark:text-white/60"><i class="fa-solid fa-arrow-left text-xs"></i></a>
-      <div><h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Add Product</h1><p class="text-xs text-gray-400 mt-0.5">Create a new product listing</p></div>
+      <a href="view.php" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-500 dark:text-white/60"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+      <div><h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Edit Category</h1><p class="text-xs text-gray-400 mt-0.5">Update <?= htmlspecialchars($cat['name']) ?></p></div>
     </div>
     <div class="flex items-center gap-3">
       <button onclick="toggleDark()" id="darkBtn" class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-600 dark:text-white/70"><i class="fa-solid fa-moon text-sm"></i></button>
@@ -132,8 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
         </button>
         <div id="menu" class="hidden absolute right-0 mt-2 bg-white dark:bg-[#151d19] border border-gray-200 dark:border-white/10 shadow-xl rounded-2xl w-48 py-2 dropdown-enter">
-          <a href="../profile.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition"><i class="fa-solid fa-user w-4 text-center text-xs"></i> Profile</a>
-          <div class="border-t border-gray-100 dark:border-white/5 mt-1 pt-1"><a href="../logout.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition"><i class="fa-solid fa-right-from-bracket w-4 text-center text-xs"></i> Logout</a></div>
+          <a href="../../profile.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition"><i class="fa-solid fa-user w-4 text-center text-xs"></i> Profile</a>
+          <div class="border-t border-gray-100 dark:border-white/5 mt-1 pt-1"><a href="../../logout.php" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5 transition"><i class="fa-solid fa-right-from-bracket w-4 text-center text-xs"></i> Logout</a></div>
         </div>
       </div>
     </div>
@@ -147,54 +147,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <form method="POST" enctype="multipart/form-data" class="bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-6 space-y-5">
         <div>
-          <label class="form-label">Product Name <span class="text-red-400">*</span></label>
-          <input type="text" name="name" value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" class="form-input" placeholder="e.g. Wireless Headphones" required>
+          <label class="form-label">Category Name <span class="text-red-400">*</span></label>
+          <input type="text" name="name" id="catName" value="<?= htmlspecialchars($_POST['name'] ?? $cat['name']) ?>" class="form-input" required oninput="autoSlug()">
         </div>
         <div>
-          <label class="form-label">Category <span class="text-red-400">*</span></label>
-          <select name="category_id" class="form-input" required>
-            <option value="">Select category</option>
-            <?php while ($c = mysqli_fetch_assoc($cats_res)): ?>
-              <option value="<?= $c['id'] ?>" <?= (($_POST['category_id'] ?? '') == $c['id']) ? 'selected' : '' ?>><?= htmlspecialchars($c['name']) ?></option>
-            <?php endwhile; ?>
-          </select>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="form-label">Price (Rs.) <span class="text-red-400">*</span></label>
-            <input type="number" name="price" step="0.01" min="0" value="<?= htmlspecialchars($_POST['price'] ?? '') ?>" class="form-input" placeholder="0" required>
-          </div>
-          <div>
-            <label class="form-label">Discount Price (Rs.)</label>
-            <input type="number" name="discount_price" step="0.01" min="0" value="<?= htmlspecialchars($_POST['discount_price'] ?? '') ?>" class="form-input" placeholder="0">
-          </div>
+          <label class="form-label">Slug</label>
+          <input type="text" name="slug" id="catSlug" value="<?= htmlspecialchars($_POST['slug'] ?? $cat['slug']) ?>" class="form-input">
         </div>
         <div>
-          <label class="form-label">Image</label>
-          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('prodImage').click()">
-            <input type="file" name="image" id="prodImage" accept="image/*" class="hidden" onchange="previewImage(this)">
-            <div id="uploadPlaceholder">
-              <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-300 dark:text-gray-600 mb-2"></i>
-              <p class="text-xs text-gray-400 font-medium">Click to upload product image</p>
-              <p class="text-[10px] text-gray-300 dark:text-gray-600 mt-0.5">JPG, PNG, WebP, GIF</p>
-            </div>
-            <img id="imagePreview" src="" class="hidden max-h-40 rounded-xl mx-auto">
-          </div>
+          <label class="form-label">Current Image</label>
+          <?php if (!empty($cat['image'])): ?>
+            <img src="../../uploads/<?= htmlspecialchars($cat['image']) ?>" class="h-20 rounded-xl object-cover border border-gray-100 dark:border-white/5">
+          <?php else: ?>
+            <p class="text-xs text-gray-400">No image uploaded</p>
+          <?php endif; ?>
         </div>
         <div>
-          <label class="form-label">Description</label>
-          <textarea name="description" class="form-input" placeholder="Product description..."><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
+          <label class="form-label">Replace Image</label>
+          <input type="file" name="image" accept="image/*" class="form-input py-2 text-xs">
         </div>
         <div>
           <label class="form-label">Status</label>
           <select name="status" class="form-input">
-            <option value="active" <?= ($_POST['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
-            <option value="inactive" <?= ($_POST['status'] ?? '') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+            <option value="active" <?= ($cat['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
+            <option value="inactive" <?= ($cat['status'] ?? '') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
           </select>
         </div>
         <div class="flex gap-3 pt-2">
-          <button type="submit" class="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-plus mr-2 text-xs"></i>Add Product</button>
-          <a href="sproduct/view.php" class="px-6 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Cancel</a>
+          <button type="submit" class="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-check mr-2 text-xs"></i>Update</button>
+          <a href="view.php" class="px-6 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Cancel</a>
         </div>
       </form>
     </div>
@@ -206,7 +187,7 @@ function toggleSidebar(){const s=document.getElementById('sidebar'),m=document.g
 function toggleDark(){const h=document.documentElement,b=document.body,btn=document.getElementById('darkBtn'),d=b.classList.toggle('dark');h.classList.toggle('dark',d);btn.innerHTML=d?'<i class="fa-solid fa-sun text-sm"></i>':'<i class="fa-solid fa-moon text-sm"></i>'}
 function toggleMenu(){document.getElementById('menu').classList.toggle('hidden')}
 document.addEventListener('click',function(e){const m=document.getElementById('menu');if(!e.target.closest('.relative')&&!m.classList.contains('hidden'))m.classList.add('hidden')});
-function previewImage(input){const file=input.files[0];if(file){const reader=new FileReader();reader.onload=function(e){document.getElementById('imagePreview').src=e.target.result;document.getElementById('imagePreview').classList.remove('hidden');document.getElementById('uploadPlaceholder').classList.add('hidden')};reader.readAsDataURL(file)}}
+function autoSlug(){document.getElementById('catSlug').value=document.getElementById('catName').value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}
 </script>
 </body>
 </html>

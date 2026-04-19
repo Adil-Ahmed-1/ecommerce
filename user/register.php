@@ -145,7 +145,7 @@ tailwind.config = {
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><i class="fa-solid fa-user text-sm"></i></span>
             <input type="text" name="full_name" required
               class="form-input w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 pl-11 pr-4 text-sm text-gray-800 placeholder:text-gray-400"
-              placeholder="John Doe" value="<?= htmlspecialchars($post_name) ?>">
+              placeholder="Adil Khoso" value="<?= htmlspecialchars($post_name) ?>">
           </div>
         </div>
 
@@ -155,7 +155,7 @@ tailwind.config = {
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><i class="fa-solid fa-envelope text-sm"></i></span>
             <input type="email" name="email" required
               class="form-input w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 pl-11 pr-4 text-sm text-gray-800 placeholder:text-gray-400"
-              placeholder="you@example.com" value="<?= htmlspecialchars($post_email) ?>">
+              placeholder="you@gmail.com" value="<?= htmlspecialchars($post_email) ?>">
           </div>
         </div>
 

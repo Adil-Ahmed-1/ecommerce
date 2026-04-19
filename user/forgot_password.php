@@ -2,95 +2,143 @@
 session_start();
 include("../backend/config/db.php");
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require '../PHPMailer/src/Exception.php';
+require '../PHPMailer/src/PHPMailer.php';
+require '../PHPMailer/src/SMTP.php';
+
+date_default_timezone_set("Asia/Karachi");
+
 if (isset($_SESSION['user_id'])) {
     header("Location: ../frontend/index.php");
     exit;
 }
 
- $error = "";
- $success = "";
+$error = "";
+$success = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
+
+    $email = $_POST['email'];
 
     if (empty($email)) {
         $error = "Please enter your email address.";
     } else {
-        $stmt = $conn->prepare("SELECT id, name FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
+
+        // ================= USER CHECK =================
+        $stmt = mysqli_prepare($conn, "SELECT id, name FROM users WHERE email = ?");
+        mysqli_stmt_bind_param($stmt, "s", $email);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $user = mysqli_fetch_assoc($result);
 
         if ($user) {
+
             $token = bin2hex(random_bytes(32));
             $expires_at = date("Y-m-d H:i:s", strtotime("+1 hour"));
 
-            // Purane token delete karo
-            $del = $conn->prepare("DELETE FROM password_resets WHERE email = ?");
-            $del->bind_param("s", $email);
-            $del->execute();
+            // ================= DELETE OLD TOKEN =================
+            $del = mysqli_prepare($conn, "DELETE FROM password_resets WHERE email = ?");
+            mysqli_stmt_bind_param($del, "s", $email);
+            mysqli_stmt_execute($del);
 
-            // Naya token insert karo
-            $ins = $conn->prepare("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)");
-            $ins->bind_param("sss", $email, $token, $expires_at);
-            $ins->execute();
+            // ================= INSERT NEW TOKEN =================
+            $ins = mysqli_prepare($conn, "INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($ins, "sss", $email, $token, $expires_at);
+            mysqli_stmt_execute($ins);
 
-            // Reset link banao
+            // ================= RESET LINK =================
             $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
             $base_url = $protocol . "://" . $_SERVER['HTTP_HOST'];
-            $reset_link = $base_url . dirname($_SERVER['PHP_SELF']) . "/reset_password.php?token=" . $token;
+
+            $reset_link = $base_url . "/ecommerce/user/reset_password.php?token=" . urlencode($token);
 
             $site_name = "Commerce";
             $user_name = htmlspecialchars($user['name']);
 
             $subject = "Password Reset - " . $site_name;
 
+            // ================= EMAIL BODY =================
             $email_body = "
-            <div style='font-family:Plus Jakarta Sans,Arial,sans-serif; max-width:480px; margin:0 auto; background:#f9fafb; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb;'>
-                <div style='background:linear-gradient(135deg,#16b364,#0a9150); padding:32px 24px; text-align:center;'>
-                    <div style='width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;'>
-                        <span style='color:#fff;font-size:22px;'>&#128273;</span>
-                    </div>
-                    <h1 style='color:#fff;font-size:20px;font-weight:800;margin:0;'>Password Reset</h1>
-                </div>
-                <div style='padding:32px 24px;'>
-                    <p style='color:#374151;font-size:14px;line-height:1.6;margin:0 0 16px;'>
-                        Hello <strong>{$user_name}</strong>,
-                    </p>
-                    <p style='color:#374151;font-size:14px;line-height:1.6;margin:0 0 24px;'>
-                        We received a request to reset your password. Click the button below to set a new password. This link will expire in <strong>1 hour</strong>.
-                    </p>
-                    <div style='text-align:center;margin:32px 0;'>
-                        <a href='{$reset_link}' style='display:inline-block;background:linear-gradient(135deg,#16b364,#0a9150);color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 8px 24px -6px rgba(22,179,100,0.45);'>
-                            Reset My Password
-                        </a>
-                    </div>
-                    <p style='color:#9ca3af;font-size:12px;line-height:1.5;margin:0 0 8px;'>
-                        If the button doesn't work, copy and paste this link into your browser:
-                    </p>
-                    <p style='color:#16b364;font-size:11px;word-break:break-all;margin:0 0 24px;background:#edfcf2;padding:10px 14px;border-radius:8px;border:1px solid #aaf0c6;'>
-                        {$reset_link}
-                    </p>
-                    <div style='border-top:1px solid #e5e7eb;padding-top:16px;margin-top:8px;'>
-                        <p style='color:#9ca3af;font-size:11px;margin:0;line-height:1.5;'>
-                            If you didn't request this, you can safely ignore this email. Your password won't be changed.
-                        </p>
-                    </div>
-                </div>
-                <div style='background:#f3f4f6;padding:16px 24px;text-align:center;'>
-                    <p style='color:#9ca3af;font-size:11px;margin:0;'>&copy; " . date('Y') . " {$site_name}. All rights reserved.</p>
-                </div>
-            </div>";
+<div style='font-family:Arial, sans-serif; max-width:520px; margin:auto; background:#f9fafb; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb;'>
 
-            $headers  = "MIME-Version: 1.0\r\n";
-            $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-            $headers .= "From: noreply@" . $_SERVER['HTTP_HOST'] . "\r\n";
+    <div style='background:linear-gradient(135deg,#16b364,#0a9150); padding:30px; text-align:center; color:#fff;'>
+        <h1 style='margin:0; font-size:22px;'>Password Reset Request</h1>
+        <p style='margin:8px 0 0; font-size:14px; opacity:0.9;'>Secure your account in a few seconds</p>
+    </div>
 
-            mail($email, $subject, $email_body, $headers);
+    <div style='padding:30px; color:#374151;'>
+
+        <h2 style='margin-bottom:10px;'>Hello {$user_name},</h2>
+
+        <p style='font-size:14px; line-height:1.6;'>
+            We received a request to reset your password for your account.
+        </p>
+
+        <p style='font-size:14px; line-height:1.6;'>
+            If you made this request, click the button below to create a new password:
+        </p>
+
+        <div style='text-align:center; margin:25px 0;'>
+            <a href='{$reset_link}' 
+               style='background:linear-gradient(135deg,#16b364,#0a9150); 
+                      color:#fff; padding:12px 26px; 
+                      text-decoration:none; border-radius:10px; 
+                      font-weight:bold; display:inline-block;'>
+                Reset My Password
+            </a>
+        </div>
+
+        <div style='background:#edfcf2; padding:12px; border-radius:10px; font-size:12px; color:#065f46;'>
+            ⚠️ This link will expire in <b>1 hour</b> for your security.
+        </div>
+
+        <p style='font-size:12px; margin-top:20px; color:#6b7280;'>
+            If you did not request this, you can safely ignore this email. Your account is safe.
+        </p>
+
+    </div>
+
+    <div style='text-align:center; padding:15px; background:#f3f4f6; font-size:11px; color:#9ca3af;'>
+        © " . date('Y') . " Commerce. All rights reserved.
+    </div>
+
+</div>";
+
+            // ================= PHPMailer =================
+            $mail = new PHPMailer(true);
+
+            try {
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'ahmedadilbaloch95@gmail.com';
+                $mail->Password   = 'awng jfsh iffe ygxs'; // ⚠️ secure
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = 587;
+
+                // MUST SAME EMAIL
+                $mail->setFrom('ahmedadilbaloch95@gmail.com', 'E-Commerce');
+                $mail->addAddress($email, $user_name);
+
+                $mail->isHTML(true);
+                $mail->Subject = $subject;
+                $mail->Body    = $email_body;
+
+                $mail->send();
+
+                $success = "Reset link sent successfully! Check inbox/spam.";
+
+            } catch (Exception $e) {
+                $error = "Email failed: " . $mail->ErrorInfo;
+            }
+
+        } else {
+            // security: always same message
+            $success = "If account exists, reset link sent.";
         }
-
-        $success = "If an account exists with this email, a reset link has been sent. Check your inbox (and spam folder).";
     }
 }
 ?>
