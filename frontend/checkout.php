@@ -108,16 +108,45 @@ tailwind.config = {
   .payment-option{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;transition:all 0.25s ease;position:relative}
   .payment-option:hover{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.1)}
   .payment-option.selected{background:rgba(251,191,36,0.04);border-color:rgba(251,191,36,0.25)}
-  .payment-option.selected .pay-icon{background:rgba(251,191,36,0.15);color:#fbbf24}
   .payment-option.selected .pay-name{color:#fbbf24}
   .payment-option input[type="radio"]{position:absolute;opacity:0;pointer-events:none}
-  .pay-icon{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:0.9rem;transition:all 0.25s ease;flex-shrink:0}
+  .pay-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;transition:all 0.25s ease;flex-shrink:0;overflow:hidden}
+  .pay-icon img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+  .pay-icon.cod-icon{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.3)}
+  .pay-icon.jc-icon{background:rgba(239,68,68,0.1)}
+  .pay-icon.ep-icon{background:rgba(16,185,129,0.1)}
+  .payment-option.selected .pay-icon.cod-icon{background:rgba(251,191,36,0.15);color:#fbbf24}
+  .payment-option.selected .pay-icon.jc-icon{background:rgba(239,68,68,0.2);box-shadow:0 0 12px rgba(239,68,68,0.15)}
+  .payment-option.selected .pay-icon.ep-icon{background:rgba(16,185,129,0.2);box-shadow:0 0 12px rgba(16,185,129,0.15)}
   .pay-name{font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.6);transition:color 0.25s ease}
   .pay-desc{font-size:0.7rem;color:rgba(255,255,255,0.2);margin-top:2px}
   .pay-check{margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;transition:all 0.25s ease;flex-shrink:0}
   .payment-option.selected .pay-check{background:#fbbf24;border-color:#fbbf24}
   .pay-check i{font-size:0.5rem;color:#0a0a0f;opacity:0;transform:scale(0);transition:all 0.2s ease}
   .payment-option.selected .pay-check i{opacity:1;transform:scale(1)}
+
+  .payment-details{max-height:0;overflow:hidden;opacity:0;transition:max-height 0.45s cubic-bezier(.4,0,.2,1),opacity 0.35s ease,margin 0.35s ease;margin-top:0}
+  .payment-details.show{max-height:800px;opacity:1;margin-top:20px}
+
+  /* UPLOAD BOX DESIGN */
+  .proof-upload-box{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;text-align:center;transition:all 0.3s ease}
+  .proof-upload-box:hover{border-color:rgba(251,191,36,0.2);background:rgba(251,191,36,0.02)}
+  .proof-upload-box.has-file{border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.03)}
+  .proof-upload-icon{width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;transition:all 0.3s ease}
+  .proof-upload-box:hover .proof-upload-icon{background:rgba(251,191,36,0.08)}
+  .proof-upload-icon i{font-size:1.3rem;color:rgba(255,255,255,0.15);transition:color 0.3s ease}
+  .proof-upload-box:hover .proof-upload-icon i{color:rgba(251,191,36,0.5)}
+  .proof-upload-box.has-file .proof-upload-icon{background:rgba(34,197,94,0.1)}
+  .proof-upload-box.has-file .proof-upload-icon i{color:#22c55e}
+  .btn-browse{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.25s ease;font-family:'Plus Jakarta Sans',sans-serif}
+  .btn-browse:hover{background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.3);color:#fbbf24}
+  .btn-browse i{font-size:0.75rem}
+  .proof-upload-meta{font-size:0.68rem;color:rgba(255,255,255,0.15);margin-top:10px}
+  .upload-preview{display:none;margin-top:16px;text-align:center}
+  .upload-preview.show{display:block}
+  .upload-preview img{max-height:140px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+  .upload-preview .file-name{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:6px 14px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15)}
+  .upload-preview .file-name span{font-size:0.75rem;font-weight:600;color:#22c55e}
 
   .btn-place{width:100%;padding:16px;border-radius:16px;font-size:0.9rem;font-weight:700;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0a0a0f;border:none;cursor:pointer;transition:all 0.25s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px}
   .btn-place::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);transition:left 0.5s ease}
@@ -131,9 +160,7 @@ tailwind.config = {
   .summary-img{width:56px;height:56px;border-radius:10px;overflow:hidden;background:#16161f;flex-shrink:0}
   .summary-img img{width:100%;height:100%;object-fit:cover}
 
-  /* SUCCESS */
   @keyframes scaleIn{0%{opacity:0;transform:scale(0.5)}60%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
-  @keyframes checkDraw{0%{stroke-dashoffset:48}100%{stroke-dashoffset:0}}
   @keyframes circleFill{0%{transform:scale(0);opacity:0}50%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
   .success-wrap{animation:scaleIn 0.5s cubic-bezier(.4,0,.2,1) forwards}
   .success-circle{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;animation:circleFill 0.4s 0.2s cubic-bezier(.4,0,.2,1) both;box-shadow:0 8px 30px -4px rgba(34,197,94,0.4)}
@@ -168,11 +195,15 @@ tailwind.config = {
   .toast-msg{position:fixed;top:24px;right:24px;z-index:9999;background:#101018;border-radius:16px;padding:16px 20px;box-shadow:0 20px 50px -10px rgba(0,0,0,0.6);opacity:0;transform:translateY(-12px) scale(0.96);transition:all 0.35s cubic-bezier(.4,0,.2,1);pointer-events:none;max-width:360px;display:flex;align-items:center;gap:12px}
   .toast-msg.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
   .toast-msg.toast-err{border:1px solid rgba(239,68,68,0.25)}
+  .toast-msg.toast-ok{border:1px solid rgba(34,197,94,0.25)}
 </style>
 </head>
 <body>
 
-<!-- TOAST -->
+<!-- HIDDEN FILE INPUT (BAHAR HAI CLIPPING SE BACHNE KE LIYE) -->
+<input type="file" id="payProof" accept="image/jpeg,image/png" style="position:fixed;top:-9999px;left:-9999px;opacity:0" onchange="handleProofUpload(this)">
+
+<!-- TOAST ERROR -->
 <div id="toastErr" class="toast-msg toast-err">
   <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shrink-0">
     <i class="fa-solid fa-xmark text-surface-900 text-sm"></i>
@@ -180,6 +211,17 @@ tailwind.config = {
   <div>
     <p class="text-sm font-semibold text-white" id="toastErrMsg">Error</p>
     <p class="text-xs text-white/30 mt-0.5">Please check the form</p>
+  </div>
+</div>
+
+<!-- TOAST SUCCESS -->
+<div id="toastOk" class="toast-msg toast-ok" style="top:90px">
+  <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shrink-0">
+    <i class="fa-solid fa-check text-surface-900 text-sm"></i>
+  </div>
+  <div>
+    <p class="text-sm font-semibold text-white" id="toastOkMsg">Success</p>
+    <p class="text-xs text-white/30 mt-0.5">Action completed</p>
   </div>
 </div>
 
@@ -253,7 +295,6 @@ tailwind.config = {
 
     <!-- ===== CHECKOUT FORM ===== -->
     <div id="checkoutForm">
-
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         <!-- LEFT: FORM -->
@@ -265,7 +306,6 @@ tailwind.config = {
               <i class="fa-solid fa-location-dot"></i>
               Shipping Details
             </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-5">
               <div class="form-group sm:col-span-2">
                 <label class="form-label">Full Name *</label>
@@ -304,7 +344,11 @@ tailwind.config = {
             <div class="space-y-3" id="paymentOptions">
               <label class="payment-option selected" onclick="selectPayment(this, 'cod')">
                 <input type="radio" name="payment" value="cod" checked>
-                <div class="pay-icon"><i class="fa-solid fa-truck"></i></div>
+                <div class="pay-icon cod-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="6" width="15" height="13" rx="2"/><path d="M16 10h4l3 4v5h-7V10z"/><circle cx="5.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/>
+                  </svg>
+                </div>
                 <div>
                   <p class="pay-name">Cash on Delivery</p>
                   <p class="pay-desc">Pay when your order arrives</p>
@@ -314,9 +358,11 @@ tailwind.config = {
 
               <label class="payment-option" onclick="selectPayment(this, 'jazzcash')">
                 <input type="radio" name="payment" value="jazzcash">
-                <div class="pay-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+                <div class="pay-icon jc-icon">
+                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='24' fill='%23CC0000'/%3E%3Ctext x='60' y='78' font-family='Arial,sans-serif' font-size='52' font-weight='900' fill='white' text-anchor='middle'%3EJC%3C/text%3E%3C/svg%3E" alt="JazzCash">
+                </div>
                 <div>
-                  <p class="pay-name">JazzCash</p>
+                  <p class="pay-name" style="color:rgba(239,68,68,0.7)">JazzCash</p>
                   <p class="pay-desc">Pay via JazzCash account</p>
                 </div>
                 <div class="pay-check"><i class="fa-solid fa-check"></i></div>
@@ -324,14 +370,104 @@ tailwind.config = {
 
               <label class="payment-option" onclick="selectPayment(this, 'easypaisa')">
                 <input type="radio" name="payment" value="easypaisa">
-                <div class="pay-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="pay-icon ep-icon">
+                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='24' fill='%2310B981'/%3E%3Ctext x='60' y='76' font-family='Arial,sans-serif' font-size='40' font-weight='900' fill='white' text-anchor='middle'%3EEP%3C/text%3E%3C/svg%3E" alt="EasyPaisa">
+                </div>
                 <div>
-                  <p class="pay-name">EasyPaisa</p>
+                  <p class="pay-name" style="color:rgba(16,185,129,0.7)">EasyPaisa</p>
                   <p class="pay-desc">Pay via EasyPaisa account</p>
                 </div>
                 <div class="pay-check"><i class="fa-solid fa-check"></i></div>
               </label>
             </div>
+
+            <!-- ===== PAYMENT DETAILS ===== -->
+            <div class="payment-details" id="paymentDetails">
+              <div class="h-px bg-white/[0.04] mb-5"></div>
+
+              <!-- Account Info Box -->
+              <div class="rounded-2xl p-5 mb-5 transition-all duration-300" id="accountInfoBox" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06)">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="w-9 h-9 rounded-lg flex items-center justify-center" id="accIconWrap" style="background:rgba(251,191,36,0.1)">
+                    <i class="fa-solid fa-building-columns text-sm" id="accIcon" style="color:#fbbf24"></i>
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold text-white" id="payInfoTitle">Send Payment to this Account</p>
+                    <p class="text-[10px] text-white/20 mt-0.5" id="payInfoSub">Transfer the exact amount below</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div class="bg-white/[0.03] rounded-xl p-3.5">
+                    <p class="text-[10px] text-white/20 font-semibold uppercase tracking-wider">Account Number</p>
+                    <div class="flex items-center justify-between mt-1.5">
+                      <p class="text-base font-extrabold text-white" id="accNumber">0300 1234567</p>
+                      <button onclick="copyAccNum()" class="text-white/20 hover:text-gold-400 transition text-xs" title="Copy"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                  </div>
+                  <div class="bg-white/[0.03] rounded-xl p-3.5">
+                    <p class="text-[10px] text-white/20 font-semibold uppercase tracking-wider">Account Name</p>
+                    <p class="text-base font-extrabold text-white mt-1.5" id="accName">BeatsShop Official</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 mt-4 bg-white/[0.02] rounded-xl px-4 py-3">
+                  <i class="fa-solid fa-coins text-gold-400 text-xs"></i>
+                  <span class="text-xs text-white/30">Amount to send:</span>
+                  <span class="text-sm font-extrabold text-gold-400 ml-auto">Rs. <?= number_format($total, 0) ?></span>
+                </div>
+              </div>
+
+              <!-- Payment Fields -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-5">
+                <div class="form-group sm:col-span-2">
+                  <label class="form-label">Transaction ID / Reference No *</label>
+                  <input type="text" id="payTrxId" class="form-input" placeholder="e.g. TRX123456789">
+                  <p class="field-error" id="errTrxId">Please enter your transaction ID</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Sender Number *</label>
+                  <input type="tel" id="paySenderNum" class="form-input" placeholder="03XX XXXXXXX">
+                  <p class="field-error" id="errSenderNum">Please enter sender number</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Sender Name *</label>
+                  <input type="text" id="paySenderName" class="form-input" placeholder="Name on the account">
+                  <p class="field-error" id="errSenderName">Please enter sender name</p>
+                </div>
+                <div class="form-group sm:col-span-2">
+                  <label class="form-label">Notes (Optional)</label>
+                  <textarea id="payNotes" class="form-input" rows="2" placeholder="Koi additional note ho toh likhein..."></textarea>
+                </div>
+
+                <!-- PROOF UPLOAD BOX -->
+                <div class="form-group sm:col-span-2">
+                  <label class="form-label">Payment Proof (Screenshot) *</label>
+                  <div class="proof-upload-box" id="proofBox" onclick="document.getElementById('payProof').click()">
+                    <div id="uploadPlaceholder">
+                      <div class="proof-upload-icon">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                      </div>
+                      <p class="text-sm font-semibold text-white/40 mb-1">Upload Payment Screenshot</p>
+                      <p class="text-xs text-white/20 mb-4">JazzCash ya EasyPaisa ka payment screenshot</p>
+                      <button type="button" class="btn-browse" onclick="event.stopPropagation(); document.getElementById('payProof').click()">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <span>Browse Files</span>
+                      </button>
+                      <p class="proof-upload-meta">JPG, PNG — Maximum 2MB</p>
+                    </div>
+                    <div class="upload-preview" id="uploadPreview">
+                      <img id="previewImg" src="" alt="Preview">
+                      <div class="file-name">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span id="previewName">file.jpg</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="field-error" id="errProof">Please upload payment screenshot</p>
+                </div>
+
+              </div>
+            </div>
+
           </div>
 
           <!-- PLACE ORDER (mobile) -->
@@ -351,7 +487,6 @@ tailwind.config = {
               <i class="fa-solid fa-receipt"></i>
               Order Summary
             </div>
-
             <div class="space-y-0 mb-5 max-h-[320px] overflow-y-auto pr-1" style="scrollbar-width:thin;scrollbar-color:#2a2a3a transparent">
               <?php foreach ($cart as $item): ?>
               <div class="summary-item">
@@ -366,7 +501,6 @@ tailwind.config = {
               </div>
               <?php endforeach; ?>
             </div>
-
             <div class="space-y-3 pt-4 border-t border-white/[0.04]">
               <div class="flex justify-between">
                 <span class="text-xs text-white/25">Subtotal (<?= $cart_count ?> items)</span>
@@ -382,13 +516,10 @@ tailwind.config = {
                 <span class="text-xl font-extrabold text-shimmer">Rs. <?= number_format($total, 0) ?></span>
               </div>
             </div>
-
-            <!-- PLACE ORDER (desktop) -->
             <button type="button" id="btnPlaceDesktop" class="btn-place mt-6 hidden lg:flex" onclick="placeOrder()">
               <i class="fa-solid fa-lock text-sm"></i>
               <span>Place Order</span>
             </button>
-
             <div class="flex items-center justify-center gap-4 mt-4">
               <div class="flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-[10px] text-white/10"></i><span class="text-[10px] text-white/10">Secure</span></div>
               <div class="flex items-center gap-1.5"><i class="fa-solid fa-lock text-[10px] text-white/10"></i><span class="text-[10px] text-white/10">Encrypted</span></div>
@@ -403,23 +534,16 @@ tailwind.config = {
     <!-- ===== SUCCESS STATE ===== -->
     <div id="successState" class="hidden">
       <div class="flex flex-col items-center justify-center py-16 success-wrap">
-        <div class="success-circle mb-8">
-          <i class="fa-solid fa-check"></i>
-        </div>
-
+        <div class="success-circle mb-8"><i class="fa-solid fa-check"></i></div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight text-center">Order Placed Successfully!</h1>
         <p class="text-sm text-white/30 mt-3 text-center max-w-md">Thank you for your order. We'll send you a confirmation with tracking details soon.</p>
-
         <div class="success-id-box mt-8 w-full max-w-sm">
           <div>
             <p class="text-[10px] text-white/20 font-semibold uppercase tracking-wider">Order ID</p>
             <p class="text-base font-extrabold text-white mt-1" id="successOrderId">—</p>
           </div>
-          <button class="copy-btn" onclick="copyOrderId()" title="Copy">
-            <i class="fa-regular fa-copy"></i>
-          </button>
+          <button class="copy-btn" onclick="copyOrderId()" title="Copy"><i class="fa-regular fa-copy"></i></button>
         </div>
-
         <div class="grid grid-cols-2 gap-4 mt-6 w-full max-w-sm">
           <div class="bg-white/[0.02] border border-white/[0.04] rounded-xl p-4 text-center">
             <p class="text-[10px] text-white/20 font-semibold uppercase tracking-wider">Total Paid</p>
@@ -430,14 +554,9 @@ tailwind.config = {
             <p class="text-sm font-bold text-white/60 mt-1.5 capitalize" id="successPayment">—</p>
           </div>
         </div>
-
         <div class="flex flex-col sm:flex-row items-center gap-3 mt-10">
-          <a href="index.php" class="btn-continue">
-            <i class="fa-solid fa-arrow-left text-xs"></i> Continue Shopping
-          </a>
-          <a href="cart.php" class="btn-secondary">
-            <i class="fa-solid fa-box text-xs"></i> View Orders
-          </a>
+          <a href="index.php" class="btn-continue"><i class="fa-solid fa-arrow-left text-xs"></i> Continue Shopping</a>
+          <a href="cart.php" class="btn-secondary"><i class="fa-solid fa-box text-xs"></i> View Orders</a>
         </div>
       </div>
     </div>
@@ -446,7 +565,6 @@ tailwind.config = {
 </main>
 
 <script>
-/* ===== PROFILE DROPDOWN ===== */
 var profileOpen = false;
 function toggleProfile() {
   profileOpen = !profileOpen;
@@ -466,37 +584,101 @@ document.addEventListener('click', function(e) {
 });
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeProfile(); });
 
-/* ===== PAYMENT SELECTION ===== */
 var selectedPayment = 'cod';
+var accountDetails = {
+  jazzcash: { number: '0303 5050490', name: 'BeatsShop Official', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.15)', iconBg: 'rgba(239,68,68,0.12)', iconColor: '#ef4444' },
+  easypaisa: { number: '0348 2277002', name: 'BeatsShop Official', bg: 'rgba(16,185,129,0.06)', border: 'rgba(16,185,129,0.15)', iconBg: 'rgba(16,185,129,0.12)', iconColor: '#10b981' }
+};
 
 function selectPayment(el, method) {
   selectedPayment = method;
-  document.querySelectorAll('.payment-option').forEach(function(opt) {
-    opt.classList.remove('selected');
-  });
+  document.querySelectorAll('.payment-option').forEach(function(opt) { opt.classList.remove('selected'); });
   el.classList.add('selected');
   el.querySelector('input[type="radio"]').checked = true;
+
+  var detailsDiv = document.getElementById('paymentDetails');
+  var infoBox = document.getElementById('accountInfoBox');
+
+  if (method === 'jazzcash' || method === 'easypaisa') {
+    detailsDiv.classList.add('show');
+    var acc = accountDetails[method];
+    var label = method.charAt(0).toUpperCase() + method.slice(1);
+    document.getElementById('accNumber').textContent = acc.number;
+    document.getElementById('accName').textContent = acc.name;
+    document.getElementById('payInfoTitle').textContent = 'Send Payment via ' + label;
+    document.getElementById('payInfoSub').textContent = 'Transfer the exact amount to this ' + label + ' account';
+    infoBox.style.background = acc.bg;
+    infoBox.style.borderColor = acc.border;
+    document.getElementById('accIconWrap').style.background = acc.iconBg;
+    document.getElementById('accIcon').style.color = acc.iconColor;
+  } else {
+    detailsDiv.classList.remove('show');
+  }
 }
 
-/* ===== TOAST ===== */
-function showToast(msg) {
+function copyAccNum() {
+  var num = document.getElementById('accNumber').textContent.replace(/\s/g, '');
+  navigator.clipboard.writeText(num).then(function() {
+    showToastOk('Copied!', 'Account number copied to clipboard');
+  });
+}
+
+function handleProofUpload(input) {
+  var box = document.getElementById('proofBox');
+  var placeholder = document.getElementById('uploadPlaceholder');
+  var preview = document.getElementById('uploadPreview');
+  var previewImg = document.getElementById('previewImg');
+  var previewName = document.getElementById('previewName');
+
+  if (input.files && input.files[0]) {
+    var file = input.files[0];
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToastErr('Image size max 2MB honi chahiye');
+      input.value = '';
+      return;
+    }
+    if (!['image/jpeg','image/jpg','image/png'].includes(file.type)) {
+      showToastErr('Only JPG aur PNG allowed hain');
+      input.value = '';
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      previewImg.src = e.target.result;
+      previewName.textContent = file.name;
+      placeholder.style.display = 'none';
+      preview.classList.add('show');
+      box.classList.add('has-file');
+      document.getElementById('errProof').classList.remove('show');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function showToastErr(msg) {
   document.getElementById('toastErrMsg').textContent = msg;
   var t = document.getElementById('toastErr');
   t.classList.add('show');
   setTimeout(function() { t.classList.remove('show'); }, 4000);
 }
+function showToastOk(msg, sub) {
+  document.getElementById('toastOkMsg').textContent = msg;
+  var t = document.getElementById('toastOk');
+  t.querySelector('.text-xs').textContent = sub || '';
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 4000);
+}
 
-/* ===== VALIDATION ===== */
 function clearErrors() {
   document.querySelectorAll('.field-error').forEach(function(e) { e.classList.remove('show'); });
   document.querySelectorAll('.input-error').forEach(function(e) { e.classList.remove('input-error'); });
 }
-
 function showFieldError(inputId, errorId) {
   document.getElementById(inputId).classList.add('input-error');
   document.getElementById(errorId).classList.add('show');
 }
-
 function validateForm() {
   clearErrors();
   var valid = true;
@@ -510,17 +692,28 @@ function validateForm() {
   if (!address || address.length < 5) { showFieldError('shipAddress', 'errAddress'); valid = false; }
   if (!city || city.length < 2) { showFieldError('shipCity', 'errCity'); valid = false; }
 
+  if (selectedPayment === 'jazzcash' || selectedPayment === 'easypaisa') {
+    var trxId = document.getElementById('payTrxId').value.trim();
+    var senderNum = document.getElementById('paySenderNum').value.trim();
+    var senderName = document.getElementById('paySenderName').value.trim();
+    var proof = document.getElementById('payProof').files[0];
+
+    if (!trxId) { showFieldError('payTrxId', 'errTrxId'); valid = false; }
+    if (!senderNum || !/^[0-9+\-\s]{7,15}$/.test(senderNum)) { showFieldError('paySenderNum', 'errSenderNum'); valid = false; }
+    if (!senderName || senderName.length < 2) { showFieldError('paySenderName', 'errSenderName'); valid = false; }
+    if (!proof) {
+      document.getElementById('errProof').classList.add('show');
+      valid = false;
+    }
+  }
   return valid;
 }
 
-/* ===== PLACE ORDER ===== */
 var isPlacing = false;
-
 function placeOrder() {
   if (isPlacing) return;
-
   if (!validateForm()) {
-    showToast('Please fill in all required fields correctly');
+    showToastErr('Please fill in all required fields correctly');
     return;
   }
 
@@ -542,20 +735,18 @@ function placeOrder() {
   fd.append('city', document.getElementById('shipCity').value.trim());
   fd.append('payment_method', selectedPayment);
 
+  if (selectedPayment !== 'cod') {
+    fd.append('transaction_id', document.getElementById('payTrxId').value.trim());
+    fd.append('sender_number', document.getElementById('paySenderNum').value.trim());
+    fd.append('sender_name', document.getElementById('paySenderName').value.trim());
+    fd.append('notes', document.getElementById('payNotes').value.trim());
+    fd.append('proof_image', document.getElementById('payProof').files[0]);
+  }
+
   fetch('process_order.php', { method: 'POST', body: fd })
   .then(function(r) {
-    if (!r.ok) {
-      return r.text().then(function(txt) {
-        throw new Error('Server returned ' + r.status + ': ' + txt.substring(0, 200));
-      });
-    }
-    return r.text().then(function(txt) {
-      try {
-        return JSON.parse(txt);
-      } catch(e) {
-        throw new Error('Invalid response: ' + txt.substring(0, 200));
-      }
-    });
+    if (!r.ok) { return r.text().then(function(txt) { throw new Error('Server returned ' + r.status + ': ' + txt.substring(0, 200)); }); }
+    return r.text().then(function(txt) { try { return JSON.parse(txt); } catch(e) { throw new Error('Invalid response: ' + txt.substring(0, 200)); } });
   })
   .then(function(data) {
     if (data.success) {
@@ -566,14 +757,14 @@ function placeOrder() {
       document.getElementById('successState').classList.remove('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      showToast(data.message || 'Something went wrong. Please try again.');
+      showToastErr(data.message || 'Something went wrong. Please try again.');
       resetButtons(btnM, btnD, mobileText, desktopText);
       isPlacing = false;
     }
   })
   .catch(function(err) {
     console.error('Order error:', err);
-    showToast('Error: ' + err.message);
+    showToastErr('Error: ' + err.message);
     resetButtons(btnM, btnD, mobileText, desktopText);
     isPlacing = false;
   });
@@ -583,22 +774,18 @@ function resetButtons(btnM, btnD, mobileText, desktopText) {
   if (btnM) { btnM.disabled = false; btnM.innerHTML = mobileText; }
   if (btnD) { btnD.disabled = false; btnD.innerHTML = desktopText; }
 }
-/* ===== COPY ORDER ID ===== */
+
 function copyOrderId() {
   var text = document.getElementById('successOrderId').textContent;
   navigator.clipboard.writeText(text).then(function() {
     var btn = document.querySelector('.copy-btn');
     btn.innerHTML = '<i class="fa-solid fa-check"></i>';
     btn.style.color = '#22c55e';
-    setTimeout(function() {
-      btn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-      btn.style.color = '';
-    }, 2000);
+    setTimeout(function() { btn.innerHTML = '<i class="fa-regular fa-copy"></i>'; btn.style.color = ''; }, 2000);
   });
 }
 
-/* ===== INPUT FOCUS CLEAR ERROR ===== */
-['shipName','shipPhone','shipAddress','shipCity'].forEach(function(id) {
+['shipName','shipPhone','shipAddress','shipCity','payTrxId','paySenderNum','paySenderName','payNotes'].forEach(function(id) {
   var el = document.getElementById(id);
   if (el) {
     el.addEventListener('input', function() {
@@ -609,13 +796,11 @@ function copyOrderId() {
   }
 });
 
-/* ===== NAV SCROLL ===== */
 window.addEventListener('scroll', function() {
   var nav = document.querySelector('.nav-blur');
   nav.style.background = window.scrollY > 50 ? 'rgba(10,10,15,0.9)' : 'rgba(10,10,15,0.75)';
 });
 
-/* ===== FADE UP OBSERVER ===== */
 var obs = new IntersectionObserver(function(entries) {
   entries.forEach(function(entry) { if (entry.isIntersecting) entry.target.style.animationPlayState = 'running'; });
 }, { threshold: 0.1 });
