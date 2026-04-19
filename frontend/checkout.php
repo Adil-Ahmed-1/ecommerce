@@ -328,7 +328,7 @@ tailwind.config = {
               </div>
               <div class="form-group">
                 <label class="form-label">City *</label>
-                <input type="text" id="shipCity" class="form-input" placeholder="e.g. Lahore">
+                <input type="text" id="shipCity" class="form-input" placeholder="e.g. Karachi ">
                 <p class="field-error" id="errCity">Please enter your city</p>
               </div>
             </div>
@@ -586,8 +586,8 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 
 var selectedPayment = 'cod';
 var accountDetails = {
-  jazzcash: { number: '0303 5050490', name: 'BeatsShop Official', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.15)', iconBg: 'rgba(239,68,68,0.12)', iconColor: '#ef4444' },
-  easypaisa: { number: '0348 2277002', name: 'BeatsShop Official', bg: 'rgba(16,185,129,0.06)', border: 'rgba(16,185,129,0.15)', iconBg: 'rgba(16,185,129,0.12)', iconColor: '#10b981' }
+  jazzcash: { number: '0303 5050490', name: 'Sanaullah ', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.15)', iconBg: 'rgba(239,68,68,0.12)', iconColor: '#ef4444' },
+  easypaisa: { number: '0300 3087021', name: 'Adnan Khoso', bg: 'rgba(16,185,129,0.06)', border: 'rgba(16,185,129,0.15)', iconBg: 'rgba(16,185,129,0.12)', iconColor: '#10b981' }
 };
 
 function selectPayment(el, method) {

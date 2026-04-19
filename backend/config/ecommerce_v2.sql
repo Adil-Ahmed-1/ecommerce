@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 20, 2026 at 12:21 AM
+-- Generation Time: Apr 20, 2026 at 01:26 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -35,6 +35,13 @@ CREATE TABLE `cart` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `cart`
+--
+
+INSERT INTO `cart` (`id`, `user_id`, `product_id`, `quantity`, `created_at`) VALUES
+(6, 5, 2, 1, '2026-04-19 22:49:11');
+
 -- --------------------------------------------------------
 
 --
@@ -61,6 +68,22 @@ INSERT INTO `categories` (`id`, `category_name`, `parent_id`, `description`, `st
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `contact_messages`
+--
+
+CREATE TABLE `contact_messages` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(150) NOT NULL,
+  `subject` varchar(200) NOT NULL,
+  `message` text NOT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `is_read` tinyint(1) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `orders`
 --
 
@@ -75,18 +98,20 @@ CREATE TABLE `orders` (
   `shipping_city` varchar(100) NOT NULL,
   `payment_method` varchar(50) NOT NULL DEFAULT 'cod',
   `status` enum('pending','confirmed','shipped','delivered','cancelled') NOT NULL DEFAULT 'pending',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `orders`
 --
 
-INSERT INTO `orders` (`id`, `order_id`, `user_id`, `total_amount`, `shipping_name`, `shipping_phone`, `shipping_address`, `shipping_city`, `payment_method`, `status`, `created_at`) VALUES
-(1, 'BS751C75D624', 4, 3500.00, 'sanaullah', '03233703689', 'Moro Bypass Sindh\r\nVillage Noor pur', 'Shaheed Benazirabad', 'cod', 'pending', '2026-04-19 19:49:02'),
-(2, 'BS56DC82C027', 4, 23000.00, 'sanaullah', '03233703689', 'Moro Bypass Sindh', 'Moro Bypass Sindh', 'cod', 'pending', '2026-04-19 19:49:33'),
-(3, 'BSA0B585AC81', 4, 3500.00, 'sanaullah', '03233703689', 'Moro Bypass Sindh\r\nVillage Noor pur', 'Shaheed Benazirabad', 'cod', 'pending', '2026-04-19 19:51:45'),
-(4, 'BS046436C228', 4, 23000.00, 'sanaullah', '03233703689', 'Moro Bypass Sindh\r\nVillage Noor pur', 'Shaheed Benazirabad', 'jazzcash', 'pending', '2026-04-19 20:00:05');
+INSERT INTO `orders` (`id`, `order_id`, `user_id`, `total_amount`, `shipping_name`, `shipping_phone`, `shipping_address`, `shipping_city`, `payment_method`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'BS751C75D624', 4, 3500.00, 'sanaullah', '03233703689', 'Moro Bypass Sindh\r\nVillage Noor pur', 'Shaheed Benazirabad', 'cod', 'pending', '2026-04-19 19:49:02', NULL),
+(2, 'BS56DC82C027', 4, 23000.00, 'sanaullah', '03233703689', 'Moro Bypass Sindh', 'Moro Bypass Sindh', 'cod', 'pending', '2026-04-19 19:49:33', NULL),
+(3, 'BSA0B585AC81', 4, 3500.00, 'sanaullah', '03233703689', 'Moro Bypass Sindh\r\nVillage Noor pur', 'Shaheed Benazirabad', 'cod', 'pending', '2026-04-19 19:51:45', NULL),
+(4, 'BS046436C228', 4, 23000.00, 'sanaullah', '03233703689', 'Moro Bypass Sindh\r\nVillage Noor pur', 'Shaheed Benazirabad', 'jazzcash', 'cancelled', '2026-04-19 20:00:05', NULL),
+(5, 'BS073C73F021', 5, 3500.00, 'Sumera', '03233703689', 'Moro Bypass Sindh\r\nVillage Noor pur', 'Shaheed Benazirabad', 'jazzcash', 'delivered', '2026-04-19 22:31:34', '2026-04-20 03:35:03');
 
 -- --------------------------------------------------------
 
@@ -112,7 +137,8 @@ INSERT INTO `order_items` (`id`, `order_db_id`, `product_id`, `product_name`, `p
 (1, 1, 2, 'Focal Clear Headphones', 3500.00, 1, '1776502977_large-yellow-headphones-on-a-gray-background-music-concept-free-photo.webp'),
 (2, 2, 1, 'Laptop', 23000.00, 1, '1776370238_hp-laptop-1000x1000.webp'),
 (3, 3, 2, 'Focal Clear Headphones', 3500.00, 1, '1776502977_large-yellow-headphones-on-a-gray-background-music-concept-free-photo.webp'),
-(4, 4, 1, 'Laptop', 23000.00, 1, '1776370238_hp-laptop-1000x1000.webp');
+(4, 4, 1, 'Laptop', 23000.00, 1, '1776370238_hp-laptop-1000x1000.webp'),
+(5, 5, 2, 'Focal Clear Headphones', 3500.00, 1, '1776502977_large-yellow-headphones-on-a-gray-background-music-concept-free-photo.webp');
 
 -- --------------------------------------------------------
 
@@ -282,6 +308,12 @@ ALTER TABLE `categories`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `contact_messages`
+--
+ALTER TABLE `contact_messages`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `orders`
 --
 ALTER TABLE `orders`
@@ -357,7 +389,7 @@ ALTER TABLE `wishlist`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -366,16 +398,22 @@ ALTER TABLE `categories`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `contact_messages`
+--
+ALTER TABLE `contact_messages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
