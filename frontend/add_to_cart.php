@@ -1,64 +1,50 @@
 <?php
 session_start();
+include("../backend/config/db.php");
+
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false]);
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
 }
 
- $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
- $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 1;
+ $user_id = $_SESSION['user_id'];
+ $product_id = intval($_POST['product_id'] ?? 0);
+ $quantity = intval($_POST['quantity'] ?? 1);
 
-if ($product_id <= 0) {
-    echo json_encode(['success' => false]);
+if ($product_id <= 0 || $quantity <= 0) {
+    echo json_encode(['success' => false, 'message' => 'Invalid data']);
     exit;
 }
 
- $quantity = max(1, min(10, $quantity));
-
-include(__DIR__ . '/../backend/config/db.php');
-
- $stmt = mysqli_prepare($conn, "SELECT id, product_name, price, image FROM products WHERE id = ?");
-mysqli_stmt_bind_param($stmt, "i", $product_id);
+/* ===== CHECK IF PRODUCT ALREADY IN CART ===== */
+ $stmt = mysqli_prepare($conn, "SELECT id, quantity FROM cart WHERE user_id = ? AND product_id = ?");
+mysqli_stmt_bind_param($stmt, "ii", $user_id, $product_id);
 mysqli_stmt_execute($stmt);
- $result = mysqli_stmt_get_result($stmt);
+ $res = mysqli_stmt_get_result($stmt);
 
-if (mysqli_num_rows($result) === 0) {
-    echo json_encode(['success' => false]);
-    exit;
+if (mysqli_num_rows($res) > 0) {
+    /* ===== ALREADY EXISTS — UPDATE QUANTITY ===== */
+    $row = mysqli_fetch_assoc($res);
+    $new_qty = $row['quantity'] + $quantity;
+    
+    $upd = mysqli_prepare($conn, "UPDATE cart SET quantity = ? WHERE id = ? AND user_id = ?");
+    mysqli_stmt_bind_param($upd, "iii", $new_qty, $row['id'], $user_id);
+    mysqli_stmt_execute($upd);
+} else {
+    /* ===== NEW ITEM — INSERT INTO CART ===== */
+    $ins = mysqli_prepare($conn, "INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?)");
+    mysqli_stmt_bind_param($ins, "iii", $user_id, $product_id, $quantity);
+    mysqli_stmt_execute($ins);
 }
 
- $product = mysqli_fetch_assoc($result);
+/* ===== GET TOTAL CART COUNT ===== */
+ $countStmt = mysqli_prepare($conn, "SELECT SUM(quantity) as total FROM cart WHERE user_id = ?");
+mysqli_stmt_bind_param($countStmt, "i", $user_id);
+mysqli_stmt_execute($countStmt);
+ $countRes = mysqli_stmt_get_result($countStmt);
+ $countRow = mysqli_fetch_assoc($countRes);
+ $cart_count = $countRow['total'] ?? 0;
 
-if (!isset($_SESSION['cart'])) {
-    $_SESSION['cart'] = [];
-}
-
- $found = false;
-foreach ($_SESSION['cart'] as &$item) {
-    if ($item['product_id'] == $product_id) {
-        $item['quantity'] += $quantity;
-        if ($item['quantity'] > 10) $item['quantity'] = 10;
-        $found = true;
-        break;
-    }
-}
-unset($item);
-
-if (!$found) {
-    $_SESSION['cart'][] = [
-        'product_id' => $product['id'],
-        'product_name' => $product['product_name'],
-        'price' => $product['price'],
-        'image' => $product['image'],
-        'quantity' => $quantity
-    ];
-}
-
- $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
-
-echo json_encode([
-    'success' => true,
-    'cart_count' => $cart_count
-]);
+echo json_encode(['success' => true, 'cart_count' => (int)$cart_count]);

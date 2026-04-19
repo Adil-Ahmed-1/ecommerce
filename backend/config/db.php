@@ -5,5 +5,3 @@ if (!$conn) {
     die("Connection Failed: " . mysqli_connect_error());
 }
 ?>
-<!-- DB -->
-<!-- ecommerce_v2 -->

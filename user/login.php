@@ -7,7 +7,7 @@ if (isset($_SESSION['user_id'])) {
     if ($_SESSION['user_role'] === 'admin') {
         header("Location: ../backend/dashboard.php");
     } else {
-        header("Location: user_dashboard.php");
+        header("Location: ../frontend/index.php");
     }
     exit;
 }
@@ -19,8 +19,10 @@ if (isset($_GET['msg'])) {
     if ($_GET['msg'] === 'registered') $success = "Account created! Please login.";
     if ($_GET['msg'] === 'logout') $success = "You have been logged out.";
     if ($_GET['msg'] === 'password_changed') $success = "Password changed! Login with new password.";
+    if ($_GET['msg'] === 'reset_sent') $success = "Reset link sent to your email. Check your inbox.";
 }
 
+// ✅ YEH BLOCK MISSING THA — FORM PROCESSING
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
@@ -40,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_role'] = $user['role'] ?? 'user';
 
             if ($_SESSION['user_role'] === 'admin') {
-                header("Location: ../admin.php");
+                header("Location: ../backend/dashboard.php");
             } else {
-                header("Location: user_dashboard.php");
+                header("Location: ../frontend/index.php");
             }
             exit;
         } else {
@@ -162,6 +164,12 @@ tailwind.config = {
           </div>
         </div>
 
+        <div class="flex justify-end">
+          <a href="forgot_password.php" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition">
+            Forgot Password?
+          </a>
+        </div>
+
         <button type="submit" class="btn-brand w-full text-white font-bold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2">
           <i class="fa-solid fa-right-to-bracket text-xs"></i>
           Sign In
@@ -201,4 +209,3 @@ function togglePw(id, btn) {
   }
 }
 </script>
-</html>

@@ -9,10 +9,9 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$cart_id = $_POST['cart_id'];
 $user_id = $_SESSION['user_id'];
 
-mysqli_query($conn, "DELETE FROM cart WHERE id = $cart_id AND user_id = $user_id");
+mysqli_query($conn, "DELETE FROM cart WHERE user_id = $user_id");
 
 echo json_encode(['success' => true]);
 ?>

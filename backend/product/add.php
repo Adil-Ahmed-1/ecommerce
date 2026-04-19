@@ -54,6 +54,27 @@ if (isset($_POST['add_product'])) {
         $stmt = mysqli_prepare($conn, $query);
         mysqli_stmt_bind_param($stmt, "isiiss", $category, $name, $price, $stock, $desc, $image);
         mysqli_stmt_execute($stmt);
+        
+        // Naye product ki ID get karein
+        $new_product_id = mysqli_insert_id($conn);
+
+        // ===== SPECIFICATIONS SAVE KARNE KA LOGIC =====
+        if ($new_product_id && isset($_POST['spec_name']) && is_array($_POST['spec_name'])) {
+            $spec_names = $_POST['spec_name'];
+            $spec_values = $_POST['spec_value'];
+            
+            $spec_stmt = mysqli_prepare($conn, "INSERT INTO product_specifications (product_id, spec_name, spec_value) VALUES (?, ?, ?)");
+            
+            foreach ($spec_names as $index => $s_name) {
+                $s_value = $spec_values[$index] ?? '';
+                // Sirf wahi rows save karein jahan dono (name aur value) empty na hon
+                if (!empty(trim($s_name)) && !empty(trim($s_value))) {
+                    mysqli_stmt_bind_param($spec_stmt, "iss", $new_product_id, $s_name, $s_value);
+                    mysqli_stmt_execute($spec_stmt);
+                }
+            }
+        }
+
         $success = "Product Added Successfully!";
     }
 }
@@ -204,7 +225,6 @@ tailwind.config = {
     border-radius:12px;
   }
 
-  /* Role Badges */
   .role-badge {
     font-size:9px;font-weight:700;letter-spacing:0.05em;
     text-transform:uppercase;padding:2px 7px;border-radius:6px;
@@ -215,6 +235,9 @@ tailwind.config = {
   .sidebar-collapsed .sidebar-text { opacity:0; width:0; overflow:hidden; }
   .sidebar-collapsed .sidebar-logo-text { opacity:0; width:0; overflow:hidden; }
   .sidebar-collapsed .sidebar-avatar { width:36px; height:36px; }
+  
+  /* Specifications Table Styling */
+  .spec-row { animation: fadeUp 0.3s ease forwards; }
 </style>
 
 </head>
@@ -223,7 +246,6 @@ tailwind.config = {
 
 <!-- ========== SIDEBAR ========== -->
 <aside id="sidebar" class="sidebar-glass fixed left-0 top-0 h-full w-[260px] text-white z-50 transition-all duration-300 flex flex-col">
-
   <div class="flex items-center justify-between px-5 pt-6 pb-4">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-xl bg-brand-400 flex items-center justify-center text-brand-950 font-extrabold text-sm shrink-0">A</div>
@@ -234,7 +256,6 @@ tailwind.config = {
     </button>
   </div>
 
-  <!-- DYNAMIC USER AVATAR -->
   <div class="px-5 py-4 flex items-center gap-3 border-t border-white/10">
     <img src="<?= $user_image ?>" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
     <div class="sidebar-text transition-all duration-300">
@@ -247,7 +268,6 @@ tailwind.config = {
   </div>
 
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
-
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
     <a href="dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white">
       <i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i>
@@ -271,7 +291,6 @@ tailwind.config = {
       <i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i>
       <span class="sidebar-text transition-all duration-300">View Products</span>
     </a>
-
   </nav>
 
   <div class="px-3 pb-5">
@@ -283,25 +302,19 @@ tailwind.config = {
       <p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p>
     </div>
   </div>
-
 </aside>
 
 <!-- ========== MAIN ========== -->
 <main id="main" class="ml-[260px] min-h-screen transition-all duration-300">
-
   <header class="topbar-line sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
-
     <div>
       <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Add Product</h1>
       <p class="text-xs text-gray-400 mt-0.5">Add a new product to your inventory</p>
     </div>
-
     <div class="flex items-center gap-3">
-
       <button onclick="toggleDark()" id="darkBtn" class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-600 dark:text-white/70">
         <i class="fa-solid fa-moon text-sm"></i>
       </button>
-
       <div class="relative">
         <button onclick="toggleMenu()" class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
           <img src="<?= $user_image ?>" class="w-8 h-8 rounded-lg object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
@@ -328,40 +341,28 @@ tailwind.config = {
           </div>
         </div>
       </div>
-
     </div>
   </header>
 
   <div class="px-8 py-6">
-
     <!-- Success Toast -->
     <?php if(isset($success)) { ?>
       <div id="toast" class="toast-slide mb-6 flex items-center gap-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 rounded-2xl px-5 py-4">
-        <div class="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shrink-0">
-          <i class="fa-solid fa-check text-white text-sm"></i>
-        </div>
+        <div class="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-white text-sm"></i></div>
         <div class="flex-1">
           <p class="text-sm font-semibold"><?= $success ?></p>
           <p class="text-xs text-brand-500 dark:text-brand-400 mt-0.5">Your product has been saved to the inventory.</p>
         </div>
-        <button onclick="dismissToast()" class="w-7 h-7 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900 flex items-center justify-center transition">
-          <i class="fa-solid fa-xmark text-xs"></i>
-        </button>
+        <button onclick="dismissToast()" class="w-7 h-7 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900 flex items-center justify-center transition"><i class="fa-solid fa-xmark text-xs"></i></button>
       </div>
     <?php } ?>
 
     <!-- Error Toast -->
     <?php if(isset($error)) { ?>
       <div id="errorToast" class="toast-slide mb-6 flex items-center gap-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-2xl px-5 py-4">
-        <div class="w-8 h-8 rounded-xl bg-red-500 flex items-center justify-center shrink-0">
-          <i class="fa-solid fa-xmark text-white text-sm"></i>
-        </div>
-        <div class="flex-1">
-          <p class="text-sm font-semibold"><?= $error ?></p>
-        </div>
-        <button onclick="dismissErrorToast()" class="w-7 h-7 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 flex items-center justify-center transition">
-          <i class="fa-solid fa-xmark text-xs"></i>
-        </button>
+        <div class="w-8 h-8 rounded-xl bg-red-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-xmark text-white text-sm"></i></div>
+        <div class="flex-1"><p class="text-sm font-semibold"><?= $error ?></p></div>
+        <button onclick="dismissErrorToast()" class="w-7 h-7 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 flex items-center justify-center transition"><i class="fa-solid fa-xmark text-xs"></i></button>
       </div>
     <?php } ?>
 
@@ -376,7 +377,6 @@ tailwind.config = {
 
     <!-- FORM CARD -->
     <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
-
       <div class="px-7 py-5 border-b border-gray-100 dark:border-white/5 flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
           <i class="fa-solid fa-box-open text-amber-500 text-sm"></i>
@@ -388,71 +388,45 @@ tailwind.config = {
       </div>
 
       <form method="POST" enctype="multipart/form-data" id="productForm" class="p-7">
-
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-x-8 gap-y-5">
-
+          
           <!-- LEFT COLUMN -->
           <div class="lg:col-span-3 space-y-5">
-
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-
               <!-- Product Name -->
               <div class="field-group sm:col-span-1">
                 <label for="prod_name">Product Name</label>
                 <div class="relative">
-                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                    <i class="fa-solid fa-tag"></i>
-                  </span>
-                  <input
-                    type="text" id="prod_name" name="product_name"
-                    class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400"
-                    placeholder="e.g. Headphones" required>
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i class="fa-solid fa-tag"></i></span>
+                  <input type="text" id="prod_name" name="product_name" class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400" placeholder="e.g. Headphones" required>
                 </div>
               </div>
-
               <!-- Price -->
               <div class="field-group">
                 <label for="prod_price">Price (Rs.)</label>
                 <div class="relative">
-                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
-                    <i class="fa-solid fa-dollar-sign"></i>
-                  </span>
-                  <input
-                    type="number" id="prod_price" name="price" step="0.01" min="0"
-                    class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400"
-                    placeholder="0.00" required>
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"><i class="fa-solid fa-dollar-sign"></i></span>
+                  <input type="number" id="prod_price" name="price" step="0.01" min="0" class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400" placeholder="0.00" required>
                 </div>
               </div>
-
               <!-- Stock -->
               <div class="field-group">
                 <label for="prod_stock">Stock Qty</label>
                 <div class="relative">
-                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
-                    <i class="fa-solid fa-warehouse"></i>
-                  </span>
-                  <input
-                    type="number" id="prod_stock" name="stock" min="0" value="0"
-                    class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400"
-                    placeholder="0" required>
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"><i class="fa-solid fa-warehouse"></i></span>
+                  <input type="number" id="prod_stock" name="stock" min="0" value="0" class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400" placeholder="0" required>
                 </div>
               </div>
-
             </div>
 
             <!-- Category -->
             <div class="field-group">
               <label for="prod_cat">Category</label>
               <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                  <i class="fa-solid fa-folder"></i>
-                </span>
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i class="fa-solid fa-folder"></i></span>
                 <select id="prod_cat" name="category_id" class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-gray-800 dark:text-white" required>
                   <option value="">Select a category</option>
-                  <?php
-                    mysqli_data_seek($cat_result, 0);
-                    while($cat = mysqli_fetch_assoc($cat_result)) {
-                  ?>
+                  <?php mysqli_data_seek($cat_result, 0); while($cat = mysqli_fetch_assoc($cat_result)) { ?>
                     <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
                   <?php } ?>
                 </select>
@@ -462,17 +436,43 @@ tailwind.config = {
             <!-- Description -->
             <div class="field-group">
               <label for="prod_desc">Description</label>
-              <textarea
-                id="prod_desc" name="description" rows="5"
-                class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 resize-none"
-                placeholder="Describe your product — features, specs, materials..."></textarea>
+              <textarea id="prod_desc" name="description" rows="4" class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 resize-none" placeholder="Describe your product — features, specs, materials..."></textarea>
               <div class="flex justify-between mt-1.5">
-                <p class="text-[11px] text-gray-400 flex items-center gap-1">
-                  <i class="fa-solid fa-circle-info text-[10px]"></i>
-                  Optional but recommended for SEO
-                </p>
+                <p class="text-[11px] text-gray-400 flex items-center gap-1"><i class="fa-solid fa-circle-info text-[10px]"></i> Optional but recommended for SEO</p>
                 <span id="charCount" class="text-[11px] text-gray-400">0 / 1000</span>
               </div>
+            </div>
+
+            <!-- ===== NEW SPECIFICATIONS SECTION ===== -->
+            <div class="field-group">
+              <div class="flex items-center justify-between mb-2">
+                <label style="margin-bottom: 0;">Specifications</label>
+                <button type="button" onclick="addSpecRow()" class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 flex items-center gap-1.5 transition">
+                  <i class="fa-solid fa-plus text-[10px]"></i> Add Row
+                </button>
+              </div>
+              
+              <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
+                <!-- Table Header -->
+                <div class="grid grid-cols-12 bg-gray-100 dark:bg-white/[0.03] text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <div class="col-span-5 px-4 py-2.5 border-r border-gray-200 dark:border-white/10">Spec Name</div>
+                  <div class="col-span-5 px-4 py-2.5 border-r border-gray-200 dark:border-white/10">Spec Value</div>
+                  <div class="col-span-2 px-4 py-2.5 text-center">Action</div>
+                </div>
+                
+                <!-- Container for Dynamic Rows -->
+                <div id="specContainer" class="divide-y divide-gray-100 dark:divide-white/5 max-h-[220px] overflow-y-auto">
+                  <!-- Default empty state message -->
+                  <div id="specEmptyState" class="py-6 text-center text-xs text-gray-400 dark:text-gray-600">
+                    <i class="fa-solid fa-list-check text-lg mb-2 block opacity-50"></i>
+                    No specifications added. Click "Add Row".
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1">
+                <i class="fa-solid fa-circle-info text-[10px]"></i>
+                Optional. E.g., Weight: 500g, Color: Black
+              </p>
             </div>
 
           </div>
@@ -481,12 +481,7 @@ tailwind.config = {
           <div class="lg:col-span-2">
             <div class="field-group">
               <label>Product Image</label>
-
-              <div
-                id="dropzone"
-                class="dropzone rounded-2xl p-6 flex flex-col items-center justify-center text-center min-h-[240px] bg-gray-50 dark:bg-white/[0.02]"
-                onclick="document.getElementById('fileInput').click()"
-              >
+              <div id="dropzone" class="dropzone rounded-2xl p-6 flex flex-col items-center justify-center text-center min-h-[240px] bg-gray-50 dark:bg-white/[0.02]" onclick="document.getElementById('fileInput').click()">
                 <div id="dropDefault">
                   <div class="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4">
                     <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-300 dark:text-gray-700"></i>
@@ -500,7 +495,6 @@ tailwind.config = {
                     <span class="text-[10px] font-medium text-gray-400 bg-gray-100 dark:bg-white/5 px-2.5 py-1 rounded-md">WEBP</span>
                   </div>
                 </div>
-
                 <div id="dropPreview" class="hidden w-full">
                   <img id="previewImg" src="" class="preview-img mx-auto mb-3" alt="Preview">
                   <p id="previewName" class="text-xs font-medium text-gray-500 dark:text-white/50 truncate max-w-[200px] mx-auto"></p>
@@ -509,11 +503,9 @@ tailwind.config = {
                   </button>
                 </div>
               </div>
-
               <input type="file" id="fileInput" name="image" accept="image/*" class="hidden" onchange="handleFile(this)">
               <p class="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                <i class="fa-solid fa-shield-halved text-[10px]"></i>
-                Max 5 MB — uploaded securely
+                <i class="fa-solid fa-shield-halved text-[10px]"></i> Max 5 MB — uploaded securely
               </p>
             </div>
           </div>
@@ -522,61 +514,43 @@ tailwind.config = {
 
         <!-- Actions -->
         <div class="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100 dark:border-white/5">
-
           <button type="submit" name="add_product" class="btn-brand text-white font-semibold text-sm px-8 py-3 rounded-xl flex items-center gap-2">
-            <i class="fa-solid fa-plus text-xs"></i>
-            Add Product
+            <i class="fa-solid fa-plus text-xs"></i> Add Product
           </button>
-
-          <a href="view.php" class="text-sm text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 font-medium px-5 py-3 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition">
-            Cancel
-          </a>
-
+          <a href="view.php" class="text-sm text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 font-medium px-5 py-3 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition">Cancel</a>
         </div>
       </form>
-
     </div>
 
     <!-- Helper Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 fade-up" style="animation-delay:0.15s">
-
       <div class="bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-5 flex items-start gap-3">
-        <div class="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-950 flex items-center justify-center shrink-0 mt-0.5">
-          <i class="fa-solid fa-image text-brand-500 text-xs"></i>
-        </div>
+        <div class="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-950 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-image text-brand-500 text-xs"></i></div>
         <div>
           <p class="text-sm font-semibold text-gray-800 dark:text-white">Use Clear Images</p>
           <p class="text-xs text-gray-400 mt-1 leading-relaxed">High-resolution product photos boost customer trust.</p>
         </div>
       </div>
-
       <div class="bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-5 flex items-start gap-3">
-        <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center shrink-0 mt-0.5">
-          <i class="fa-solid fa-dollar-sign text-amber-500 text-xs"></i>
-        </div>
+        <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-dollar-sign text-amber-500 text-xs"></i></div>
         <div>
           <p class="text-sm font-semibold text-gray-800 dark:text-white">Set Fair Prices</p>
           <p class="text-xs text-gray-400 mt-1 leading-relaxed">Compare with similar products before pricing.</p>
         </div>
       </div>
-
       <div class="bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-5 flex items-start gap-3">
-        <div class="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950 flex items-center justify-center shrink-0 mt-0.5">
-          <i class="fa-solid fa-pen-fancy text-sky-500 text-xs"></i>
-        </div>
+        <div class="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-list-check text-sky-500 text-xs"></i></div>
         <div>
-          <p class="text-sm font-semibold text-gray-800 dark:text-white">Write Descriptions</p>
-          <p class="text-xs text-gray-400 mt-1 leading-relaxed">Detailed descriptions help products appear in search.</p>
+          <p class="text-sm font-semibold text-gray-800 dark:text-white">Add Specifications</p>
+          <p class="text-xs text-gray-400 mt-1 leading-relaxed">Detailed specs help buyers make quick decisions.</p>
         </div>
       </div>
-
     </div>
-
   </div>
 </main>
 
 <script>
-
+// --- Previous Functions (Sidebar, Dark Mode, Image Upload, etc.) ---
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const main = document.getElementById('main');
@@ -591,33 +565,23 @@ function toggleDark() {
   const btn = document.getElementById('darkBtn');
   const isDark = body.classList.toggle('dark');
   html.classList.toggle('dark', isDark);
-  btn.innerHTML = isDark
-    ? '<i class="fa-solid fa-sun text-sm"></i>'
-    : '<i class="fa-solid fa-moon text-sm"></i>';
+  btn.innerHTML = isDark ? '<i class="fa-solid fa-sun text-sm"></i>' : '<i class="fa-solid fa-moon text-sm"></i>';
 }
 
-function toggleMenu() {
-  document.getElementById('menu').classList.toggle('hidden');
-}
+function toggleMenu() { document.getElementById('menu').classList.toggle('hidden'); }
 document.addEventListener('click', function(e) {
   const menu = document.getElementById('menu');
-  if (!e.target.closest('.relative') && !menu.classList.contains('hidden')) {
-    menu.classList.add('hidden');
-  }
+  if (!e.target.closest('.relative') && !menu.classList.contains('hidden')) { menu.classList.add('hidden'); }
 });
 
 function dismissToast() {
-  const t = document.getElementById('toast');
-  if (!t) return;
-  t.classList.remove('toast-slide');
-  t.classList.add('toast-out');
+  const t = document.getElementById('toast'); if (!t) return;
+  t.classList.remove('toast-slide'); t.classList.add('toast-out');
   setTimeout(() => t.remove(), 300);
 }
 function dismissErrorToast() {
-  const t = document.getElementById('errorToast');
-  if (!t) return;
-  t.classList.remove('toast-slide');
-  t.classList.add('toast-out');
+  const t = document.getElementById('errorToast'); if (!t) return;
+  t.classList.remove('toast-slide'); t.classList.add('toast-out');
   setTimeout(() => t.remove(), 300);
 }
 <?php if(isset($success)) { ?> setTimeout(dismissToast, 5000); <?php } ?>
@@ -628,16 +592,12 @@ const counter = document.getElementById('charCount');
 if (textarea && counter) {
   textarea.addEventListener('input', function() {
     let len = this.value.length;
-    if (len > 1000) {
-      this.value = this.value.substring(0, 1000);
-      len = 1000;
-    }
+    if (len > 1000) { this.value = this.value.substring(0, 1000); len = 1000; }
     counter.textContent = len + ' / 1000';
     counter.style.color = len > 900 ? (len >= 1000 ? '#ef4444' : '#f59e0b') : '';
   });
 }
 
-/* ===== IMAGE UPLOAD ===== */
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
 const dropDefault = document.getElementById('dropDefault');
@@ -646,86 +606,83 @@ const previewImg = document.getElementById('previewImg');
 const previewName = document.getElementById('previewName');
 
 function handleFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  if (file.size > 5 * 1024 * 1024) {
-    alert('Image must be under 5 MB.');
-    input.value = '';
-    return;
-  }
-
+  const file = input.files[0]; if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5 MB.'); input.value = ''; return; }
   const valid = ['image/jpeg','image/png','image/gif','image/webp'];
-  if (!valid.includes(file.type)) {
-    alert('Only JPG, PNG, GIF, and WEBP are allowed.');
-    input.value = '';
-    return;
-  }
-
+  if (!valid.includes(file.type)) { alert('Only JPG, PNG, GIF, and WEBP are allowed.'); input.value = ''; return; }
   const reader = new FileReader();
   reader.onload = function(e) {
-    previewImg.src = e.target.result;
-    previewName.textContent = file.name;
-    dropDefault.classList.add('hidden');
-    dropPreview.classList.remove('hidden');
-    dropzone.classList.add('has-image');
+    previewImg.src = e.target.result; previewName.textContent = file.name;
+    dropDefault.classList.add('hidden'); dropPreview.classList.remove('hidden'); dropzone.classList.add('has-image');
   };
   reader.readAsDataURL(file);
 }
 
 function removeImage(e) {
-  e.stopPropagation();
-  fileInput.value = '';
-  previewImg.src = '';
-  previewName.textContent = '';
-  dropDefault.classList.remove('hidden');
-  dropPreview.classList.add('hidden');
-  dropzone.classList.remove('has-image');
+  e.stopPropagation(); fileInput.value = ''; previewImg.src = ''; previewName.textContent = '';
+  dropDefault.classList.remove('hidden'); dropPreview.classList.add('hidden'); dropzone.classList.remove('has-image');
 }
 
-dropzone.addEventListener('dragover', function(e) {
-  e.preventDefault();
-  this.classList.add('drag-over');
-});
-dropzone.addEventListener('dragleave', function(e) {
-  e.preventDefault();
-  this.classList.remove('drag-over');
-});
+dropzone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', function(e) { e.preventDefault(); this.classList.remove('drag-over'); });
 dropzone.addEventListener('drop', function(e) {
-  e.preventDefault();
-  this.classList.remove('drag-over');
-  if (e.dataTransfer.files.length) {
-    fileInput.files = e.dataTransfer.files;
-    handleFile(fileInput);
-  }
+  e.preventDefault(); this.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFile(fileInput); }
 });
 
 document.getElementById('productForm').addEventListener('submit', function(e) {
   if (!fileInput.files.length) {
-    e.preventDefault();
-    dropzone.style.animation = 'none';
-    dropzone.offsetHeight;
-    dropzone.style.animation = 'shake 0.4s ease';
-    dropzone.style.borderColor = '#ef4444';
-    setTimeout(() => {
-      dropzone.style.borderColor = '';
-      dropzone.style.animation = '';
-    }, 1500);
+    e.preventDefault(); dropzone.style.animation = 'none'; dropzone.offsetHeight;
+    dropzone.style.animation = 'shake 0.4s ease'; dropzone.style.borderColor = '#ef4444';
+    setTimeout(() => { dropzone.style.borderColor = ''; dropzone.style.animation = ''; }, 1500);
   }
 });
 
 const shakeStyle = document.createElement('style');
-shakeStyle.textContent = `
-  @keyframes shake {
-    0%,100% { transform:translateX(0); }
-    20% { transform:translateX(-6px); }
-    40% { transform:translateX(6px); }
-    60% { transform:translateX(-4px); }
-    80% { transform:translateX(4px); }
-  }
-`;
+shakeStyle.textContent = `@keyframes shake { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-6px); } 40% { transform:translateX(6px); } 60% { transform:translateX(-4px); } 80% { transform:translateX(4px); } }`;
 document.head.appendChild(shakeStyle);
 
+
+// --- NEW DYNAMIC SPECIFICATIONS LOGIC ---
+function addSpecRow() {
+  const container = document.getElementById('specContainer');
+  const emptyState = document.getElementById('specEmptyState');
+  
+  // Agar empty state show ho raha hai toh use hide karein
+  if(emptyState) emptyState.style.display = 'none';
+
+  // Naya row create karein
+  const row = document.createElement('div');
+  row.className = 'grid grid-cols-12 spec-row';
+  
+  row.innerHTML = `
+    <div class="col-span-5 px-2 py-2">
+      <input type="text" name="spec_name[]" placeholder="e.g. Weight" class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-800 dark:text-white placeholder:text-gray-400">
+    </div>
+    <div class="col-span-5 px-2 py-2 border-l border-gray-100 dark:border-white/5">
+      <input type="text" name="spec_value[]" placeholder="e.g. 500g" class="form-input w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-800 dark:text-white placeholder:text-gray-400">
+    </div>
+    <div class="col-span-2 px-2 py-2 border-l border-gray-100 dark:border-white/5 flex justify-center items-center">
+      <button type="button" onclick="removeSpecRow(this)" class="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 flex items-center justify-center transition">
+        <i class="fa-solid fa-trash-can text-xs"></i>
+      </button>
+    </div>
+  `;
+
+  container.appendChild(row);
+}
+
+function removeSpecRow(btn) {
+  const row = btn.closest('.grid.grid-cols-12');
+  row.remove();
+  
+  // Agar sab rows delete ho jayein toh wapis empty state show karein
+  const container = document.getElementById('specContainer');
+  if(container.children.length === 0) {
+    const emptyState = document.getElementById('specEmptyState');
+    if(emptyState) emptyState.style.display = 'block';
+  }
+}
 </script>
 
 </body>
