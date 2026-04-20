@@ -1,6 +1,6 @@
 <?php
 session_start();
-include("../backend/config/db.php");
+include('../backend/config/db.php');
 
 header('Content-Type: application/json');
 
@@ -12,181 +12,217 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
 
  $user_id = intval($_SESSION['user_id']);
 
-/* ===== GET POST DATA ===== */
- $name           = mysqli_real_escape_string($conn, trim($_POST['name'] ?? ''));
- $phone          = mysqli_real_escape_string($conn, trim($_POST['phone'] ?? ''));
- $email          = mysqli_real_escape_string($conn, trim($_POST['email'] ?? ''));
- $address        = mysqli_real_escape_string($conn, trim($_POST['address'] ?? ''));
- $city           = mysqli_real_escape_string($conn, trim($_POST['city'] ?? ''));
- $payment_method = mysqli_real_escape_string($conn, trim($_POST['payment_method'] ?? 'cod'));
+/* ===== RECEIVE DATA ===== */
+ $shipping_name   = mysqli_real_escape_string($conn, trim($_POST['name'] ?? ''));
+ $shipping_phone  = mysqli_real_escape_string($conn, trim($_POST['phone'] ?? ''));
+ $shipping_address = mysqli_real_escape_string($conn, trim($_POST['address'] ?? ''));
+ $shipping_city   = mysqli_real_escape_string($conn, trim($_POST['city'] ?? ''));
+ $pay_method      = mysqli_real_escape_string($conn, trim($_POST['payment_method'] ?? 'cod'));
 
 /* ===== BASIC VALIDATION ===== */
-if (empty($name) || empty($phone) || empty($address) || empty($city)) {
-    echo json_encode(['success' => false, 'message' => 'All shipping fields are required']);
+if (empty($shipping_name) || empty($shipping_phone) || empty($shipping_address) || empty($shipping_city)) {
+    echo json_encode(['success' => false, 'message' => 'Please fill all required shipping fields']);
     exit;
 }
 
-if (!in_array($payment_method, ['cod', 'jazzcash', 'easypaisa'])) {
+if (!in_array($pay_method, ['cod', 'jazzcash', 'easypaisa'])) {
     echo json_encode(['success' => false, 'message' => 'Invalid payment method']);
     exit;
 }
 
-/* ===== GET CART ITEMS ===== */
- $cartStmt = mysqli_prepare($conn, "
-    SELECT c.product_id, c.quantity, p.product_name, p.price, p.image 
-    FROM cart c 
-    INNER JOIN products p ON c.product_id = p.id 
-    WHERE c.user_id = ?
-");
-mysqli_stmt_bind_param($cartStmt, "i", $user_id);
-mysqli_stmt_execute($cartStmt);
- $cartResult = mysqli_stmt_get_result($cartStmt);
-
- $cart_items = [];
- $total = 0;
-while ($row = mysqli_fetch_assoc($cartResult)) {
-    $cart_items[] = $row;
-    $total += $row['price'] * $row['quantity'];
-}
-
-if (empty($cart_items)) {
-    echo json_encode(['success' => false, 'message' => 'Your cart is empty']);
-    exit;
-}
-
-/* ===== PAYMENT VARIABLES ===== */
+/* ===== PAYMENT FIELDS (sirf JazzCash/EasyPaisa ke liye) ===== */
  $transaction_id = '';
  $sender_number  = '';
  $sender_name    = '';
  $notes          = '';
  $proof_image    = '';
- $pay_status     = 'pending'; // Default for COD
 
-/* ===== IF NOT COD — Handle Payment Fields ===== */
-if ($payment_method !== 'cod') {
-    
+if ($pay_method !== 'cod') {
+
     $transaction_id = mysqli_real_escape_string($conn, trim($_POST['transaction_id'] ?? ''));
     $sender_number  = mysqli_real_escape_string($conn, trim($_POST['sender_number'] ?? ''));
     $sender_name    = mysqli_real_escape_string($conn, trim($_POST['sender_name'] ?? ''));
     $notes          = mysqli_real_escape_string($conn, trim($_POST['notes'] ?? ''));
 
     if (empty($transaction_id) || empty($sender_number) || empty($sender_name)) {
-        echo json_encode(['success' => false, 'message' => 'All payment fields are required']);
+        echo json_encode(['success' => false, 'message' => 'Please fill all payment details']);
         exit;
     }
 
-    /* ===== IMAGE UPLOAD ===== */
-    if (isset($_FILES['proof_image']) && $_FILES['proof_image']['error'] == 0) {
-        
-        $file_name = $_FILES['proof_image']['name'];
-        $file_tmp  = $_FILES['proof_image']['tmp_name'];
-        $file_size = $_FILES['proof_image']['size'];
-        $file_ext  = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+    /* ===== PROOF IMAGE UPLOAD ===== */
+    if (isset($_FILES['proof_image']) && $_FILES['proof_image']['error'] === 0) {
 
-        $allowed = ['jpg', 'jpeg', 'png'];
+        $file    = $_FILES['proof_image'];
+        $allowed = ['image/jpeg', 'image/jpg', 'image/png'];
+        $maxSize = 2 * 1024 * 1024;
 
-        if (!in_array($file_ext, $allowed)) {
+        if (!in_array($file['type'], $allowed)) {
             echo json_encode(['success' => false, 'message' => 'Only JPG and PNG images allowed']);
             exit;
         }
 
-        if ($file_size > 2 * 1024 * 1024) {
+        if ($file['size'] > $maxSize) {
             echo json_encode(['success' => false, 'message' => 'Image size must be under 2MB']);
             exit;
         }
 
-        $new_name = 'pay_' . $user_id . '_' . time() . '_' . rand(1000, 9999) . '.' . $file_ext;
-        $upload_path = '../backend/uploads/payments/';
+        $ext         = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $proof_image = 'proof_' . $user_id . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
 
-        if (!is_dir($upload_path)) {
-            mkdir($upload_path, 0777, true);
+        $upload_dir  = '../backend/uploads/payments/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
         }
 
-        if (move_uploaded_file($file_tmp, $upload_path . $new_name)) {
-            $proof_image = $new_name;
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Image upload failed. Try again.']);
+        if (!move_uploaded_file($file['tmp_name'], $upload_dir . $proof_image)) {
+            echo json_encode(['success' => false, 'message' => 'Failed to upload payment proof']);
             exit;
         }
 
     } else {
-        echo json_encode(['success' => false, 'message' => 'Payment proof image is required']);
+        echo json_encode(['success' => false, 'message' => 'Please upload payment screenshot']);
         exit;
     }
 }
 
+/* ===== FETCH CART ITEMS (IMAGE BHI LIYA) ===== */
+ $cartRes = mysqli_query($conn, "
+    SELECT c.product_id, c.quantity, p.price, p.product_name, p.image
+    FROM cart c
+    INNER JOIN products p ON c.product_id = p.id
+    WHERE c.user_id = $user_id
+");
+
+if (!$cartRes || mysqli_num_rows($cartRes) === 0) {
+    echo json_encode(['success' => false, 'message' => 'Your cart is empty']);
+    exit;
+}
+
+ $cart_items   = [];
+ $total_amount = 0;
+
+while ($row = mysqli_fetch_assoc($cartRes)) {
+    $cart_items[]  = $row;
+    $total_amount += floatval($row['price']) * intval($row['quantity']);
+}
+
 /* ===== GENERATE ORDER ID ===== */
- $order_id = 'BS-' . strtoupper(substr(md5($user_id . time()), 0, 8));
+ $order_id = 'BS-' . strtoupper(substr(md5($user_id . microtime(true)), 0, 8));
 
 /* ===== START TRANSACTION ===== */
 mysqli_begin_transaction($conn);
 
 try {
 
-    /* 1. INSERT INTO ORDERS TABLE */
-    $order_sql = "INSERT INTO orders 
-        (order_id, user_id, name, phone, email, address, city, payment_method, total_amount, status, created_at, updated_at) 
-        VALUES 
-        ('$order_id', $user_id, '$name', '$phone', '$email', '$address', '$city', '$payment_method', $total, 'pending', NOW(), NOW())";
-    
-    mysqli_query($conn, $order_sql);
-    $order_db_id = mysqli_insert_id($conn);
+    /* ──────────────────────────────
+       1. INSERT INTO orders TABLE
+    ────────────────────────────── */
+    $orderSQL = "
+        INSERT INTO orders (
+            user_id, order_id, shipping_name, shipping_phone,
+            shipping_address, shipping_city, payment_method,
+            total_amount, status, created_at
+        ) VALUES (
+            $user_id,
+            '$order_id',
+            '$shipping_name',
+            '$shipping_phone',
+            '$shipping_address',
+            '$shipping_city',
+            '$pay_method',
+            $total_amount,
+            'pending',
+            NOW()
+        )
+    ";
 
-    /* 2. INSERT ORDER ITEMS */
+    if (!mysqli_query($conn, $orderSQL)) {
+        throw new Exception('Order insert failed: ' . mysqli_error($conn));
+    }
+
+    $db_order_id = mysqli_insert_id($conn);
+
+    /* ──────────────────────────────
+       2. INSERT INTO payments TABLE
+       (sirf JazzCash / EasyPaisa)
+    ────────────────────────────── */
+    if ($pay_method !== 'cod') {
+
+        $paySQL = "
+            INSERT INTO payments (
+                user_id, order_id, amount, method,
+                transaction_id, sender_number, sender_name,
+                notes, proof_image, status, created_at
+            ) VALUES (
+                $user_id,
+                '$order_id',
+                $total_amount,
+                '$pay_method',
+                '$transaction_id',
+                '$sender_number',
+                '$sender_name',
+                " . ($notes       ? "'$notes'"       : "NULL") . ",
+                " . ($proof_image ? "'$proof_image'" : "NULL") . ",
+                'pending',
+                NOW()
+            )
+        ";
+
+        if (!mysqli_query($conn, $paySQL)) {
+            throw new Exception('Payment insert failed: ' . mysqli_error($conn));
+        }
+    }
+
+    /* ──────────────────────────────
+       3. INSERT ORDER ITEMS
+       (TUMHARI EXACT TABLE KE MUTABIQ)
+    ────────────────────────────── */
     foreach ($cart_items as $item) {
-        $pid = intval($item['product_id']);
-        $pname = mysqli_real_escape_string($conn, $item['product_name']);
-        $price = floatval($item['price']);
-        $qty = intval($item['quantity']);
-        $img = mysqli_real_escape_string($conn, $item['image']);
 
-        $item_sql = "INSERT INTO order_items 
-            (order_id, product_id, product_name, price, quantity, image) 
-            VALUES 
-            ($order_db_id, $pid, '$pname', $price, $qty, '$img')";
-        mysqli_query($conn, $item_sql);
+        $pid        = intval($item['product_id']);
+        $pname      = mysqli_real_escape_string($conn, $item['product_name']);
+        $qty        = intval($item['quantity']);
+        $price      = floatval($item['price']);
+        $item_image = mysqli_real_escape_string($conn, $item['image'] ?? '');
 
-        /* 3. REDUCE PRODUCT STOCK (agar stock column hai) */
+        $itemSQL = "
+            INSERT INTO order_items (order_db_id, product_id, product_name, price, quantity, image)
+            VALUES ($db_order_id, $pid, '$pname', $price, $qty, '$item_image')
+        ";
+
+        if (!mysqli_query($conn, $itemSQL)) {
+            throw new Exception('Order item insert failed: ' . mysqli_error($conn));
+        }
+
+        /* UPDATE STOCK */
         mysqli_query($conn, "UPDATE products SET stock = stock - $qty WHERE id = $pid AND stock >= $qty");
     }
 
-    /* 4. INSERT INTO PAYMENTS TABLE */
-    $pay_sql = "INSERT INTO payments 
-        (user_id, amount, method, status, transaction_id, sender_number, sender_name, notes, proof_image, created_at, updated_at) 
-        VALUES 
-        ($user_id, $total, '$payment_method', '$pay_status', '$transaction_id', '$sender_number', '$sender_name', '$notes', '$proof_image', NOW(), NOW())";
-    
-    mysqli_query($conn, $pay_sql);
-
-    /* 5. CLEAR USER CART */
+    /* ──────────────────────────────
+       4. CLEAR CART
+    ────────────────────────────── */
     mysqli_query($conn, "DELETE FROM cart WHERE user_id = $user_id");
 
-    /* COMMIT TRANSACTION */
+    /* ===== COMMIT ===== */
     mysqli_commit($conn);
 
-    /* SUCCESS RESPONSE */
     echo json_encode([
-        'success'     => true,
-        'order_id'    => $order_id,
-        'total'       => $total,
-        'payment'     => $payment_method,
-        'message'     => 'Order placed successfully!'
+        'success'  => true,
+        'order_id' => $order_id,
+        'total'    => $total_amount,
+        'payment'  => $pay_method,
+        'message'  => 'Order placed successfully'
     ]);
 
 } catch (Exception $e) {
-    
-    /* ROLLBACK ON ERROR */
+
     mysqli_rollback($conn);
-    
-    /* Delete uploaded image if rollback */
-    if (!empty($proof_image) && file_exists('../backend/uploads/payments/' . $proof_image)) {
-        unlink('../backend/uploads/payments/' . $proof_image);
-    }
 
     echo json_encode([
         'success' => false,
-        'message' => 'Error: ' . $e->getMessage()
+        'message' => 'Order failed: ' . $e->getMessage()
     ]);
 }
 
+mysqli_close($conn);
 ?>

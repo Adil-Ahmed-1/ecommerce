@@ -210,9 +210,12 @@ tailwind.config = {
       <div class="flex items-center justify-between mb-5">
         <h3 class="text-sm font-bold text-gray-900 dark:text-white">Order Progress</h3>
         <?php if (!$is_cancelled && $order['status'] !== 'delivered'): ?>
-        <button onclick="openStatusModal()" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2">
-          <i class="fa-solid fa-pen-to-square text-[10px]"></i> Update Status
-        </button>
+        <button onclick="openStatusModal()" class="group flex items-center gap-2.5 text-xs font-semibold text-gray-600 dark:text-white/60 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-300">
+  <span class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 group-hover:bg-brand-50 dark:group-hover:bg-brand-500/10 flex items-center justify-center transition-all duration-300">
+    <i class="fa-solid fa-pen-to-square text-[11px] text-gray-400 group-hover:text-brand-500 transition-colors duration-300"></i>
+  </span>
+  Update Status
+</button>
         <?php endif; ?>
       </div>
       <?php if ($is_cancelled): ?>
@@ -428,9 +431,12 @@ tailwind.config = {
         <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to Orders
       </a>
       <?php if ($order['status'] !== 'cancelled' && $order['status'] !== 'delivered'): ?>
-      <button onclick="openStatusModal()" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2">
-        <i class="fa-solid fa-pen-to-square text-[10px]"></i> Update Status
-      </button>
+<button onclick="openStatusModal()" class="group flex items-center gap-2.5 text-xs font-semibold text-gray-600 dark:text-white/60 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-300">
+  <span class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 group-hover:bg-brand-50 dark:group-hover:bg-brand-500/10 flex items-center justify-center transition-all duration-300">
+    <i class="fa-solid fa-pen-to-square text-[11px] text-gray-400 group-hover:text-brand-500 transition-colors duration-300"></i>
+  </span>
+  Update Status
+</button>
       <button onclick="confirmCancel()" class="px-5 py-2.5 bg-red-50 dark:bg-red-500/5 hover:bg-red-100 dark:hover:bg-red-500/10 text-red-500 rounded-xl text-xs font-semibold transition flex items-center gap-2">
         <i class="fa-solid fa-ban text-[10px]"></i> Cancel Order
       </button>

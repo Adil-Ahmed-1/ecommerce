@@ -1,6 +1,6 @@
 <?php
 session_start();
-include("config/db.php");
+include("../config/db.php");
 
 if (!isset($_SESSION['user_id'])) { header("Location: ../user/login.php"); exit; }
 
@@ -12,38 +12,78 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../user/login.php"); exit;
  $user_image = !empty($user['image']) ? 'uploads/' . $user['image'] : 'https://ui-avatars.com/api/?name=' . urlencode($user_name) . '&background=16b364&color=fff&bold=true';
  $user_role = ucfirst($user['role'] ?? 'user');
 
+/* ✅ AUTO-DETECT: which columns actually exist */
+ $chk = mysqli_query($conn, "SHOW COLUMNS FROM categories LIKE 'category_name'");
+ $cat_name_col = (mysqli_num_rows($chk) > 0) ? 'category_name' : 'name';
+
+ $chk2 = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'product_name'");
+ $prod_name_col = (mysqli_num_rows($chk2) > 0) ? 'product_name' : 'name';
+
+ $chk3 = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'discount_price'");
+ $has_discount_col = (mysqli_num_rows($chk3) > 0);
+
+ $chk4 = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'is_active'");
+ $has_is_active = (mysqli_num_rows($chk4) > 0);
+
+ $chk5 = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'status'");
+ $has_status = (mysqli_num_rows($chk5) > 0);
+
+/* Helper: get product status display value */
+function getProductStatus($p, $has_is_active, $has_status) {
+    if ($has_is_active && isset($p['is_active'])) {
+        return $p['is_active'] == 1 ? 'active' : 'inactive';
+    }
+    if ($has_status && isset($p['status'])) {
+        return $p['status'];
+    }
+    return 'active';
+}
+
 /* ===== DELETE ===== */
 if (isset($_GET['delete'])) {
     $did = (int)$_GET['delete'];
     $prod = mysqli_fetch_assoc(mysqli_query($conn, "SELECT image FROM products WHERE id = $did"));
-    if ($prod && !empty($prod['image']) && file_exists('uploads/' . $prod['image'])) unlink('uploads/' . $prod['image']);
+    if ($prod && !empty($prod['image']) && file_exists(__DIR__ . '/uploads/' . $prod['image'])) unlink(__DIR__ . '/uploads/' . $prod['image']);
     mysqli_query($conn, "DELETE FROM products WHERE id = $did");
     $_SESSION['toast'] = ['type'=>'success','message'=>'Product deleted'];
-    header("Location: sproduct/view.php"); exit;
+    header("Location: view.php"); exit;
 }
 
 /* ===== TOGGLE STATUS ===== */
 if (isset($_GET['toggle'])) {
     $tid = (int)$_GET['toggle'];
-    $cur = mysqli_fetch_assoc(mysqli_query($conn, "SELECT status FROM products WHERE id = $tid"));
-    if ($cur) {
-        $new = $cur['status'] === 'active' ? 'inactive' : 'active';
-        mysqli_query($conn, "UPDATE products SET status = '$new' WHERE id = $tid");
-        $_SESSION['toast'] = ['type'=>'success','message'=>'Status updated to ' . ucfirst($new)];
-        header("Location: sproduct/view.php"); exit;
+    if ($has_is_active) {
+        $cur = mysqli_fetch_assoc(mysqli_query($conn, "SELECT is_active FROM products WHERE id = $tid"));
+        if ($cur) {
+            $new = $cur['is_active'] == 1 ? 0 : 1;
+            mysqli_query($conn, "UPDATE products SET is_active = $new WHERE id = $tid");
+            $_SESSION['toast'] = ['type'=>'success','message'=>'Status updated to ' . ($new ? 'Active' : 'Inactive')];
+        }
+    } elseif ($has_status) {
+        $cur = mysqli_fetch_assoc(mysqli_query($conn, "SELECT status FROM products WHERE id = $tid"));
+        if ($cur) {
+            $new = $cur['status'] === 'active' ? 'inactive' : 'active';
+            mysqli_query($conn, "UPDATE products SET status = '$new' WHERE id = $tid");
+            $_SESSION['toast'] = ['type'=>'success','message'=>'Status updated to ' . ucfirst($new)];
+        }
     }
+    header("Location: view.php"); exit;
 }
 
  $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
  $cat_filter = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 
  $where = "1=1";
-if ($search) $where .= " AND (p.name LIKE '%$search%' OR p.description LIKE '%$search%')";
+/* ✅ FIX: use detected column name for product name */
+if ($search) $where .= " AND (p.$prod_name_col LIKE '%$search%' OR p.description LIKE '%$search%')";
 if ($cat_filter) $where .= " AND p.category_id = $cat_filter";
 
- $prods_res = mysqli_query($conn, "SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE $where ORDER BY p.created_at DESC");
+/* ✅ FIX: use c.category_name instead of c.name */
+ $prods_res = mysqli_query($conn, "SELECT p.*, c.$cat_name_col AS category_name FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE $where ORDER BY p.created_at DESC");
  $total_prods = mysqli_num_rows($prods_res);
- $all_cats = mysqli_query($conn, "SELECT id, name FROM categories WHERE status='active' ORDER BY name");
+
+/* ✅ FIX: use detected column name for categories */
+ $all_cats = mysqli_query($conn, "SELECT id, $cat_name_col FROM categories WHERE status='active' ORDER BY $cat_name_col");
 ?>
 
 <!DOCTYPE html>
@@ -53,7 +93,7 @@ if ($cat_filter) $where .= " AND p.category_id = $cat_filter";
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Products</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family+Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Plus Jakarta Sans','sans-serif']},colors:{brand:{50:'#edfcf2',100:'#d3f8e0',200:'#aaf0c6',300:'#73e2a5',400:'#3acd7e',500:'#16b364',600:'#0a9150',700:'#087442',800:'#095c37',900:'#084b2e',950:'#032a1a'}}}}}</script>
 <style>
@@ -101,10 +141,10 @@ if ($cat_filter) $where .= " AND p.category_id = $cat_filter";
     <a href="dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
     <?php if ($user_role === 'Admin') { ?>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Manage</p>
-    <a href="category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
-    <a href="category/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
-    <a href="product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
-    <a href="sproduct/view.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
+    <a href="../category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
+    <a href="../category/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
+    <a href="add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
+    <a href="view.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Sales</p>
     <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
     <a href="payments.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
@@ -145,12 +185,12 @@ if ($cat_filter) $where .= " AND p.category_id = $cat_filter";
       <select name="category" class="form-input w-auto min-w-[160px]">
         <option value="">All Categories</option>
         <?php while ($c = mysqli_fetch_assoc($all_cats)): ?>
-          <option value="<?= $c['id'] ?>" <?= $cat_filter == $c['id'] ? 'selected' : '' ?>><?= htmlspecialchars($c['name']) ?></option>
+          <option value="<?= $c['id'] ?>" <?= $cat_filter == $c['id'] ? 'selected' : '' ?>><?= htmlspecialchars($c[$cat_name_col]) ?></option>
         <?php endwhile; ?>
       </select>
       <button type="submit" class="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Filter</button>
       <?php if ($search || $cat_filter): ?>
-        <a href="sproduct/view.php" class="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Clear</a>
+        <a href="view.php" class="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Clear</a>
       <?php endif; ?>
     </form>
 
@@ -158,8 +198,16 @@ if ($cat_filter) $where .= " AND p.category_id = $cat_filter";
     <?php if (mysqli_num_rows($prods_res) > 0): ?>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <?php while ($p = mysqli_fetch_assoc($prods_res)):
-        $has_discount = !empty($p['discount_price']) && $p['discount_price'] < $p['price'];
-        $discount_pct = $has_discount ? round((($p['price'] - $p['discount_price']) / $p['price']) * 100) : 0;
+        /* ✅ FIX: use detected column name for product name */
+        $prod_title = $p[$prod_name_col] ?? 'Untitled';
+
+        /* ✅ FIX: safe discount check */
+        $disc_price = ($has_discount_col && isset($p['discount_price'])) ? (float)$p['discount_price'] : 0;
+        $has_discount = $disc_price > 0 && $disc_price < (float)$p['price'];
+        $discount_pct = $has_discount ? round((($p['price'] - $disc_price) / $p['price']) * 100) : 0;
+
+        /* ✅ FIX: safe status detection */
+        $p_status = getProductStatus($p, $has_is_active, $has_status);
       ?>
       <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden hover:shadow-md transition-shadow group">
         <!-- Image -->
@@ -172,14 +220,14 @@ if ($cat_filter) $where .= " AND p.category_id = $cat_filter";
           <?php if ($has_discount): ?>
             <span class="absolute top-3 left-3 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-md uppercase">-<?= $discount_pct ?>%</span>
           <?php endif; ?>
-          <span class="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md <?= $p['status'] === 'active' ? 'bg-emerald-500 text-white' : 'bg-gray-400 text-white' ?>"><?= ucfirst($p['status']) ?></span>
+          <span class="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md <?= $p_status === 'active' ? 'bg-emerald-500 text-white' : 'bg-gray-400 text-white' ?>"><?= ucfirst($p_status) ?></span>
         </div>
         <!-- Info -->
         <div class="p-4">
           <?php if (!empty($p['category_name'])): ?>
             <p class="text-[10px] font-semibold text-brand-500 dark:text-brand-400 uppercase tracking-wider mb-1"><?= htmlspecialchars($p['category_name']) ?></p>
           <?php endif; ?>
-          <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-1 line-clamp-2 leading-snug"><?= htmlspecialchars($p['name']) ?></h3>
+          <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-1 line-clamp-2 leading-snug"><?= htmlspecialchars($prod_title) ?></h3>
           <?php if (!empty($p['description'])): ?>
             <p class="text-[10px] text-gray-400 line-clamp-2 mb-3 leading-relaxed"><?= htmlspecialchars($p['description']) ?></p>
           <?php else: ?>
@@ -188,7 +236,7 @@ if ($cat_filter) $where .= " AND p.category_id = $cat_filter";
           <div class="flex items-end justify-between mb-3">
             <div>
               <?php if ($has_discount): ?>
-                <p class="text-base font-extrabold text-brand-600 dark:text-brand-400">Rs. <?= number_format($p['discount_price'], 0) ?></p>
+                <p class="text-base font-extrabold text-brand-600 dark:text-brand-400">Rs. <?= number_format($disc_price, 0) ?></p>
                 <p class="text-[10px] text-gray-400 line-through">Rs. <?= number_format($p['price'], 0) ?></p>
               <?php else: ?>
                 <p class="text-base font-extrabold text-gray-900 dark:text-white">Rs. <?= number_format($p['price'], 0) ?></p>
@@ -198,8 +246,8 @@ if ($cat_filter) $where .= " AND p.category_id = $cat_filter";
           </div>
           <div class="flex gap-2">
             <a href="product/edit.php?id=<?= $p['id'] ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-pen text-[9px] mr-1"></i>Edit</a>
-            <a href="sproduct/view.php?toggle=<?= $p['id'] ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-toggle-on text-[9px] mr-1"></i>Toggle</a>
-            <a href="sproduct/view.php?delete=<?= $p['id'] ?>" onclick="return confirm('Delete this product?')" class="py-2 px-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-trash text-[9px]"></i></a>
+            <a href="view.php?toggle=<?= $p['id'] ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-toggle-on text-[9px] mr-1"></i>Toggle</a>
+            <a href="view.php?delete=<?= $p['id'] ?>" onclick="return confirm('Delete this product?')" class="py-2 px-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-trash text-[9px]"></i></a>
           </div>
         </div>
       </div>
@@ -225,6 +273,5 @@ function toggleDark(){const h=document.documentElement,b=document.body,btn=docum
 function toggleMenu(){document.getElementById('menu').classList.toggle('hidden')}
 document.addEventListener('click',function(e){const m=document.getElementById('menu');if(!e.target.closest('.relative')&&!m.classList.contains('hidden'))m.classList.add('hidden')});
 </script>
-
 </body>
 </html>

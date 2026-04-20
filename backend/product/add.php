@@ -1,6 +1,6 @@
 <?php
 session_start();
-include("config/db.php");
+include("../config/db.php");
 
 if (!isset($_SESSION['user_id'])) { header("Location: ../user/login.php"); exit; }
 
@@ -12,8 +12,20 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../user/login.php"); exit;
  $user_image = !empty($user['image']) ? 'uploads/' . $user['image'] : 'https://ui-avatars.com/api/?name=' . urlencode($user_name) . '&background=16b364&color=fff&bold=true';
  $user_role = ucfirst($user['role'] ?? 'user');
 
- $cats_res = mysqli_query($conn, "SELECT id, name FROM categories WHERE status = 'active' ORDER BY name ASC");
+ $cats_res = mysqli_query($conn, "SELECT id, category_name FROM categories WHERE status = 'active' ORDER BY category_name ASC");
  $error = '';
+
+/* ✅ Detect if discount_price column exists */
+ $col_check = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'discount_price'");
+ $has_discount = (mysqli_num_rows($col_check) > 0);
+
+/* ✅ Detect if is_active column exists */
+ $active_check = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'is_active'");
+ $has_is_active = (mysqli_num_rows($active_check) > 0);
+
+/* ✅ Detect if status column exists (old naming) */
+ $status_check = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'status'");
+ $has_status = (mysqli_num_rows($status_check) > 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = mysqli_real_escape_string($conn, trim($_POST['name']));
@@ -21,7 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = (float)$_POST['price'];
     $discount_price = !empty($_POST['discount_price']) ? (float)$_POST['discount_price'] : 0;
     $description = mysqli_real_escape_string($conn, trim($_POST['description']));
-    $status = mysqli_real_escape_string($conn, $_POST['status']);
+    
+    $status_val = mysqli_real_escape_string($conn, $_POST['status']);
+    $is_active = ($status_val === 'active') ? 1 : 0;
 
     if (empty($name)) $error = 'Product name is required';
     elseif ($category_id < 1) $error = 'Select a category';
@@ -31,14 +45,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($_FILES['image']['name'])) {
             $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
             if (in_array($ext, ['jpg','jpeg','png','webp','gif'])) {
+                $upload_dir = __DIR__ . '/uploads/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
                 $image = time() . '_' . rand(1000,9999) . '.' . $ext;
-                move_uploaded_file($_FILES['image']['tmp_name'], 'uploads/' . $image);
+                move_uploaded_file($_FILES['image']['tmp_name'], $upload_dir . $image);
             } else { $error = 'Invalid image format'; }
         }
         if (!$error) {
-            mysqli_query($conn, "INSERT INTO products (category_id, name, price, discount_price, image, description, status, created_at) VALUES ($category_id, '$name', $price, $discount_price, '$image', '$description', '$status', NOW())");
+            /* ✅ Build query dynamically based on existing columns */
+            $columns = "category_id, product_name, price, image, description, created_at";
+            $values = "$category_id, '$name', $price, '$image', '$description', NOW()";
+            
+            if ($has_discount) {
+                $columns .= ", discount_price";
+                $values .= ", $discount_price";
+            }
+            
+            if ($has_is_active) {
+                $columns .= ", is_active";
+                $values .= ", $is_active";
+            } elseif ($has_status) {
+                $columns .= ", status";
+                $values .= ", '$status_val'";
+            }
+            
+            mysqli_query($conn, "INSERT INTO products ($columns) VALUES ($values)");
             $_SESSION['toast'] = ['type'=>'success','message'=>'Product added successfully'];
-            header("Location: sproduct/view.php"); exit;
+            header("Location: view.php"); exit;
         }
     }
 }
@@ -101,16 +136,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
-    <a href="dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
+    <a href="../dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
     <?php if ($user_role === 'Admin') { ?>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Manage</p>
-    <a href="category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
-    <a href="category/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
-    <a href="product/add.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
-    <a href="sproduct/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
+    <a href="../category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
+    <a href="../category/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
+    <a href="add.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
+    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Sales</p>
-    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
-    <a href="payments.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
+    <a href="../orders/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
+    <a href="../payments/payments.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
     <?php } ?>
   </nav>
   <div class="px-3 pb-5"><div class="sidebar-text bg-white/5 rounded-xl p-4 transition-all duration-300"><p class="text-[11px] text-white/40 mb-1">Storage Used</p><div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full w-[38%] bg-gradient-to-r from-brand-400 to-brand-300 rounded-full"></div></div><p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p></div></div>
@@ -120,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main id="main" class="ml-[260px] min-h-screen transition-all duration-300">
   <header class="topbar-border sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
     <div class="flex items-center gap-3">
-      <a href="sproduct/view.php" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-500 dark:text-white/60"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+      <a href="view.php" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-500 dark:text-white/60"><i class="fa-solid fa-arrow-left text-xs"></i></a>
       <div><h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Add Product</h1><p class="text-xs text-gray-400 mt-0.5">Create a new product listing</p></div>
     </div>
     <div class="flex items-center gap-3">
@@ -154,8 +189,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label class="form-label">Category <span class="text-red-400">*</span></label>
           <select name="category_id" class="form-input" required>
             <option value="">Select category</option>
-            <?php while ($c = mysqli_fetch_assoc($cats_res)): ?>
-              <option value="<?= $c['id'] ?>" <?= (($_POST['category_id'] ?? '') == $c['id']) ? 'selected' : '' ?>><?= htmlspecialchars($c['name']) ?></option>
+            <?php 
+            mysqli_data_seek($cats_res, 0);
+            while ($c = mysqli_fetch_assoc($cats_res)): ?>
+              <option value="<?= $c['id'] ?>" <?= (($_POST['category_id'] ?? '') == $c['id']) ? 'selected' : '' ?>><?= htmlspecialchars($c['category_name']) ?></option>
             <?php endwhile; ?>
           </select>
         </div>
@@ -164,10 +201,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label class="form-label">Price (Rs.) <span class="text-red-400">*</span></label>
             <input type="number" name="price" step="0.01" min="0" value="<?= htmlspecialchars($_POST['price'] ?? '') ?>" class="form-input" placeholder="0" required>
           </div>
+          <?php if ($has_discount): ?>
           <div>
             <label class="form-label">Discount Price (Rs.)</label>
             <input type="number" name="discount_price" step="0.01" min="0" value="<?= htmlspecialchars($_POST['discount_price'] ?? '') ?>" class="form-input" placeholder="0">
           </div>
+          <?php endif; ?>
         </div>
         <div>
           <label class="form-label">Image</label>
@@ -194,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <div class="flex gap-3 pt-2">
           <button type="submit" class="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-plus mr-2 text-xs"></i>Add Product</button>
-          <a href="sproduct/view.php" class="px-6 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Cancel</a>
+          <a href="view.php" class="px-6 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Cancel</a>
         </div>
       </form>
     </div>
