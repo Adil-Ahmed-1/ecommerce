@@ -24,7 +24,7 @@ if (isset($_GET['delete'])) {
     }
     mysqli_query($conn, "DELETE FROM categories WHERE id = $did");
     $_SESSION['toast'] = ['type' => 'success', 'message' => 'Category deleted'];
-    header("Location: category/view.php");
+    header("Location: view.php");
     exit;
 }
 
@@ -36,7 +36,7 @@ if (isset($_GET['toggle'])) {
         $new = $cur['status'] === 'active' ? 'inactive' : 'active';
         mysqli_query($conn, "UPDATE categories SET status = '$new' WHERE id = $tid");
         $_SESSION['toast'] = ['type' => 'success', 'message' => 'Status updated to ' . ucfirst($new)];
-        header("Location: category/view.php");
+        header("Location: view.php");
         exit;
     }
 }
@@ -56,7 +56,7 @@ if ($search) $where .= " AND (name LIKE '%$search%' OR slug LIKE '%$search%')";
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Categories</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family+Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script>
 tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }, colors: { brand: { 50:'#edfcf2',100:'#d3f8e0',200:'#aaf0c6',300:'#73e2a5',400:'#3acd7e',500:'#16b364',600:'#0a9150',700:'#087442',800:'#095c37',900:'#084b2e',950:'#032a1a' }}}}}
@@ -88,7 +88,7 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
 <body class="bg-[#f4f6f8] dark:bg-[#0a0f0d] transition-colors duration-500 min-h-screen">
 
 <?php if (isset($_SESSION['toast'])): ?>
-  <div class="toast toast-<?= $_SESSION['toast']['type'] ?>"><i class="fa-solid fa-<?= $_SESSION['toast']['type'] === 'success' ? 'check-circle' : 'exclamation-circle' ?> mr-2"></i><?= htmlspecialchars($_SESSION['toast']['message']) ?></div>
+  <div class="toast toast-<?= $_SESSION['toast']['type'] ?? 'success' ?>"><i class="fa-solid fa-<?= ($_SESSION['toast']['type'] ?? 'success') === 'success' ? 'check-circle' : 'exclamation-circle' ?> mr-2"></i><?= htmlspecialchars($_SESSION['toast']['message'] ?? '') ?></div>
   <?php unset($_SESSION['toast']); ?>
 <?php endif; ?>
 
@@ -110,10 +110,10 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
     <a href="add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
     <a href="view.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
     <a href="../product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
-    <a href="../product/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
+    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Sales</p>
     <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
-    <a href="payments.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
+    <a href="paymenets.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
     <?php } ?>
   </nav>
   <div class="px-3 pb-5"><div class="sidebar-text bg-white/5 rounded-xl p-4 transition-all duration-300"><p class="text-[11px] text-white/40 mb-1">Storage Used</p><div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full w-[38%] bg-gradient-to-r from-brand-400 to-brand-300 rounded-full"></div></div><p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p></div></div>
@@ -124,7 +124,7 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
   <header class="topbar-border sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
     <div><h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Categories</h1><p class="text-xs text-gray-400 mt-0.5"><?= $total_cats ?> categories</p></div>
     <div class="flex items-center gap-3">
-      <a href="category/add.php" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-plus mr-2 text-xs"></i>Add New</a>
+      <a href="add.php" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-plus mr-2 text-xs"></i>Add New</a>
       <button onclick="toggleDark()" id="darkBtn" class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-600 dark:text-white/70"><i class="fa-solid fa-moon text-sm"></i></button>
       <div class="relative">
         <button onclick="toggleMenu()" class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
@@ -149,7 +149,7 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
           <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search categories..." class="bg-transparent outline-none text-sm text-gray-700 dark:text-white/80 w-full placeholder:text-gray-400">
         </div>
         <button type="submit" class="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Search</button>
-        <?php if ($search): ?><a href="category/view.php" class="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Clear</a><?php endif; ?>
+        <?php if ($search): ?><a href="view.php" class="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Clear</a><?php endif; ?>
       </div>
     </form>
 
@@ -168,16 +168,16 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
         <div class="p-4">
           <div class="flex items-start justify-between mb-2">
             <div>
-              <h3 class="text-sm font-bold text-gray-900 dark:text-white"><?= htmlspecialchars($cat['name']) ?></h3>
-              <p class="text-[10px] text-gray-400 font-mono"><?= htmlspecialchars($cat['slug']) ?></p>
+              <h3 class="text-sm font-bold text-gray-900 dark:text-white"><?= htmlspecialchars($cat['name'] ?? 'Unnamed') ?></h3>
+              <p class="text-[10px] text-gray-400 font-mono"><?= htmlspecialchars($cat['slug'] ?? 'no-slug') ?></p>
             </div>
-            <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md <?= $cat['status'] === 'active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-500' ?>"><?= ucfirst($cat['status']) ?></span>
+            <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md <?= ($cat['status'] ?? '') === 'active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-500' ?>"><?= ucfirst($cat['status'] ?? 'inactive') ?></span>
           </div>
-          <p class="text-[11px] text-gray-400 mb-3"><i class="fa-solid fa-box text-[9px] mr-1"></i><?= $cat['product_count'] ?> products</p>
+          <p class="text-[11px] text-gray-400 mb-3"><i class="fa-solid fa-box text-[9px] mr-1"></i><?= (int)($cat['product_count'] ?? 0) ?> products</p>
           <div class="flex gap-2">
-            <a href="category/edit.php?id=<?= $cat['id'] ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-pen text-[9px] mr-1"></i>Edit</a>
-            <a href="category/view.php?toggle=<?= $cat['id'] ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-toggle-on text-[9px] mr-1"></i>Toggle</a>
-            <a href="category/view.php?delete=<?= $cat['id'] ?>" onclick="return confirm('Delete this category?')" class="py-2 px-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-trash text-[9px]"></i></a>
+            <a href="edit.php?id=<?= (int)($cat['id'] ?? 0) ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-pen text-[9px] mr-1"></i>Edit</a>
+            <a href="view.php?toggle=<?= (int)($cat['id'] ?? 0) ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-toggle-on text-[9px] mr-1"></i>Toggle</a>
+            <a href="view.php?delete=<?= (int)($cat['id'] ?? 0) ?>" onclick="return confirm('Delete this category?')" class="py-2 px-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-trash text-[9px]"></i></a>
           </div>
         </div>
       </div>
@@ -187,7 +187,7 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
     <div class="fade-up text-center py-20 bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5">
       <i class="fa-solid fa-layer-group text-4xl text-gray-200 dark:text-gray-700 mb-4"></i>
       <p class="text-sm text-gray-400 font-medium">No categories found</p>
-      <a href="category/add.php" class="inline-block mt-3 px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition">Add First Category</a>
+      <a href="add.php" class="inline-block mt-3 px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition">Add First Category</a>
     </div>
     <?php endif; ?>
   </div>
