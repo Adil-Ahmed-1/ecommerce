@@ -48,7 +48,7 @@ if (!$admin) {
     exit;
 }
 
-// Safe extract — jo column hai woh lega, nahi to default
+// Safe extract
  $adminName = $admin['name'] ?? $admin['username'] ?? $admin['full_name'] ?? 'Admin';
  $adminData = [
     'id'         => $admin['id'] ?? 0,
@@ -61,30 +61,49 @@ if (!$admin) {
     'last_login' => $admin['last_login'] ?? $admin['login_at'] ?? date('Y-m-d H:i:s'),
 ];
 
-// Last login update — sirf agar column exist kare
+// Last login update
 try {
     $tbl = isset($_SESSION['admin_id']) ? 'admins' : 'users';
-    // Pehle check karo column hai ya nahi
     $cols = $pdo->query("SHOW COLUMNS FROM $tbl LIKE 'last_login'")->fetchAll();
     if (count($cols) > 0) {
         $pdo->prepare("UPDATE $tbl SET last_login = NOW() WHERE id = ?")->execute([$adminData['id']]);
     }
-} catch (PDOException $e) {
-    // Koi baat nahi, skip
-}
+} catch (PDOException $e) {}
 
 // ============ AJAX HANDLER ============
 if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
     header('Content-Type: application/json');
     $action = $_POST['action'] ?? '';
 
+    /* ── UPDATE PAYMENT STATUS ── */
     if ($action === 'update_status') {
         $id     = intval($_POST['id'] ?? 0);
         $status = $_POST['status'] ?? '';
         $allowed = ['pending', 'approved', 'rejected'];
+
         if ($id > 0 && in_array($status, $allowed)) {
+
+            // Payment status update
             $stmt = $pdo->prepare("UPDATE payments SET status = ?, updated_at = NOW() WHERE id = ?");
             $stmt->execute([$status, $id]);
+
+            // Order bhi update karo
+            $payRow = $pdo->prepare("SELECT order_id FROM payments WHERE id = ?");
+            $payRow->execute([$id]);
+            $payData = $payRow->fetch();
+
+            if ($payData && !empty($payData['order_id'])) {
+                $oid = $payData['order_id'];
+
+                if ($status === 'approved') {
+                    $pdo->prepare("UPDATE orders SET status = 'confirmed', updated_at = NOW() WHERE order_id = ?")->execute([$oid]);
+                } elseif ($status === 'rejected') {
+                    $pdo->prepare("UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE order_id = ?")->execute([$oid]);
+                } else {
+                    $pdo->prepare("UPDATE orders SET status = 'pending', updated_at = NOW() WHERE order_id = ?")->execute([$oid]);
+                }
+            }
+
             echo json_encode(['success' => true, 'message' => ucfirst($status) . ' successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Invalid request']);
@@ -92,21 +111,19 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
         exit;
     }
 
+    /* ── UPDATE PROFILE ── */
     if ($action === 'update_profile') {
         $name  = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
         if ($name && $email) {
             $tbl = isset($_SESSION['admin_id']) ? 'admins' : 'users';
-
-            // Phone column check karo
             $phoneCols = $pdo->query("SHOW COLUMNS FROM $tbl LIKE 'phone'")->fetchAll();
             if (count($phoneCols) > 0) {
                 $pdo->prepare("UPDATE $tbl SET name = ?, email = ?, phone = ? WHERE id = ?")->execute([$name, $email, $phone, $adminData['id']]);
             } else {
                 $pdo->prepare("UPDATE $tbl SET name = ?, email = ? WHERE id = ?")->execute([$name, $email, $adminData['id']]);
             }
-
             $adminData['name']  = $name;
             $adminData['email'] = $email;
             $adminData['phone'] = $phone;
@@ -119,6 +136,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
         exit;
     }
 
+    /* ── LOGOUT ── */
     if ($action === 'logout') {
         session_destroy();
         echo json_encode(['success' => true, 'redirect' => $loginPage]);
@@ -131,7 +149,6 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
 
 // ============ FETCH PAYMENTS ============
 try {
-    // Pehle check karo users table hai ya nahi
     $usersExists = $pdo->query("SHOW TABLES LIKE 'users'")->fetchAll();
     if (count($usersExists) > 0) {
         $stmt = $pdo->query("
@@ -151,14 +168,13 @@ try {
     $payments = $stmt->fetchAll();
 }
 
-// Ensure keys exist in every payment row
 foreach ($payments as &$p) {
-    $p['user_name']  = $p['user_name']  ?? $p['sender_name'] ?? 'Unknown';
-    $p['user_email'] = $p['user_email'] ?? '';
-    $p['notes']      = $p['notes']      ?? '';
-    $p['proof_image']= $p['proof_image']?? '';
-    $p['status']     = $p['status']     ?? 'pending';
-    $p['method']     = $p['method']     ?? 'N/A';
+    $p['user_name']   = $p['user_name']   ?? $p['sender_name'] ?? 'Unknown';
+    $p['user_email']  = $p['user_email']  ?? '';
+    $p['notes']       = $p['notes']       ?? '';
+    $p['proof_image'] = $p['proof_image'] ?? '';
+    $p['status']      = $p['status']      ?? 'pending';
+    $p['method']      = $p['method']      ?? 'N/A';
 }
 unset($p);
 
@@ -463,7 +479,20 @@ function getFilteredPayments(){return payments.filter(p=>{if(currentFilter&&p.st
 function getCounts(){return{all:payments.length,pending:payments.filter(x=>x.status==='pending').length,approved:payments.filter(x=>x.status==='approved').length,rejected:payments.filter(x=>x.status==='rejected').length}}
 function getSums(){const s=a=>a.reduce((b,x)=>b+Number(x.amount),0);return{all:s(payments),pending:s(payments.filter(x=>x.status==='pending')),approved:s(payments.filter(x=>x.status==='approved')),rejected:s(payments.filter(x=>x.status==='rejected'))}}
 
-async function ajaxPost(p){const b=new URLSearchParams();for(const k in p)b.append(k,p[k]);const r=await fetch(window.location.href,{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'},body:b.toString()});return r.json()}
+/* ✅ FIX: Content-Type header add kiya */
+async function ajaxPost(p){
+  const b=new URLSearchParams();
+  for(const k in p)b.append(k,p[k]);
+  const r=await fetch(window.location.href,{
+    method:'POST',
+    headers:{
+      'X-Requested-With':'XMLHttpRequest',
+      'Content-Type':'application/x-www-form-urlencoded'
+    },
+    body:b.toString()
+  });
+  return r.json();
+}
 
 function render(){
   const co=getCounts(),su=getSums(),fi=getFilteredPayments(),to=fi.length,tp=Math.max(1,Math.ceil(to/perPage));
