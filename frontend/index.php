@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beats Shop — Premium Audio</title>
+<title>AHMUS Shop — Premium Product</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -724,7 +724,7 @@ tailwind.config = {
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
         <i class="fa-solid fa-headphones text-surface-900 text-sm"></i>
       </div>
-      <span class="text-lg font-extrabold text-white tracking-tight">Beats<span class="text-gold-400">Shop</span></span>
+      <span class="text-lg font-extrabold text-white tracking-tight">AHMUS<span class="text-gold-400">Shop</span></span>
     </a>
     <div class="hidden md:flex items-center gap-8">
       <a href="index.php" class="text-sm font-medium text-white hover:text-gold-400 transition">Home</a>
@@ -836,20 +836,20 @@ tailwind.config = {
       <div class="flex-1 text-center lg:text-left fade-up">
         <div class="inline-flex items-center gap-2 bg-gold-500/10 border border-gold-500/20 rounded-full px-4 py-1.5 mb-6">
           <span class="w-2 h-2 rounded-full bg-gold-400 animate-pulse"></span>
-          <span class="text-xs font-semibold text-gold-400 uppercase tracking-wider">New Collection 2025</span>
+          <span class="text-xs font-semibold text-gold-400 uppercase tracking-wider">New Collection 2026</span>
         </div>
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight">
-          Next Level<br><span class="text-shimmer">Sound Experience</span>
+        <h1 class="text-4xl sm:text-5xl lg:text-4xl font-extrabold leading-[1.1] tracking-tight">
+          Welcome to AHMUS <br><span class="text-shimmer">Your Trusted Online Store</span>
         </h1>
         <p class="text-white/40 mt-5 text-base lg:text-lg max-w-md mx-auto lg:mx-0 leading-relaxed">
-          Premium headphones engineered for deep bass, crystal clarity, and all-day comfort. Feel every beat.
+          Discover premium quality products at unbeatable prices. Shop smart, live better with AHMUS.
         </p>
         <div class="flex items-center gap-4 mt-8 justify-center lg:justify-start">
           <a href="#products" class="btn-cart px-7 py-3.5 text-sm flex items-center gap-2">
             <i class="fa-solid fa-headphones text-xs"></i> Shop Now
           </a>
           <a href="#" class="btn-view px-7 py-3.5 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-play text-[10px]"></i> Watch Video
+            <i class="fa-solid fa-play text-[10px]"></i> Explore Categories
           </a>
         </div>
         <div class="flex items-center gap-8 mt-12 justify-center lg:justify-start">
@@ -1001,8 +1001,8 @@ tailwind.config = {
         <i class="fa-solid fa-heart text-gold-400 text-[10px]"></i>
         <span class="text-xs font-semibold text-gold-400 uppercase tracking-wider">Our Story</span>
       </div>
-      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">About <span class="text-shimmer">BeatsShop</span></h2>
-      <p class="text-sm text-white/30 mt-3 max-w-lg mx-auto leading-relaxed">Born from a love of sound, built on trust, and driven by the mission to make premium audio accessible to everyone.</p>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">About <span class="text-shimmer">AHMUS</span></h2>
+      <p class="text-sm text-white/30 mt-3 max-w-lg mx-auto leading-relaxed">As a growing startup, we are committed to building trust, delivering value, and continuously improving our services for our customers.</p>
     </div>
 
     <!-- Stats Bar -->
@@ -1054,17 +1054,17 @@ tailwind.config = {
       <div class="fade-up" style="animation-delay:0.13s">
         <h3 class="text-xl font-extrabold text-white mb-4">We Started With One Simple Idea</h3>
         <p class="text-sm text-white/35 leading-relaxed mb-4">
-          Frustrated by overpriced audio gear that didn't deliver on quality, our founder Ahmed Adil started BeatsShop from a small room in Karachi with just 15 products and a big dream — to bring studio-grade sound to everyone without the ridiculous markup.
+          Frustrated by overpriced products that didn’t deliver real value, our founder Adil Khoso launched AHMUS from a small room in Karachi with just 15 carefully selected items and a bold vision — to make quality shopping accessible to everyone without unnecessary markup.
         </p>
         <p class="text-sm text-white/35 leading-relaxed mb-6">
-          Today, with 50,000+ happy customers and 200+ curated products, we've proven that premium audio doesn't have to cost a fortune. Every product is hand-tested, every order is packed with care, and every customer is treated like family.
+          Today, AHMUS is growing step by step with a commitment to quality and customer satisfaction. We are building a platform where every product is carefully selected, every order is handled with care, and every customer is treated like family.
         </p>
 
         <!-- Values mini list -->
         <div class="space-y-3">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check text-gold-400 text-xs"></i></div>
-            <p class="text-sm text-white/55 font-medium">100% Original & Authentic Products</p>
+            <p class="text-sm text-white/55 font-medium">100% Carefully Verified, Quality Assured Products</p>
           </div>
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check text-gold-400 text-xs"></i></div>
@@ -1088,13 +1088,13 @@ tailwind.config = {
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div class="value-card fade-up" style="animation-delay:0.05s">
           <div class="value-icon bg-gold-500/10 text-gold-400 mb-4"><i class="fa-solid fa-headphones-simple"></i></div>
-          <h4 class="text-sm font-bold text-white mb-1.5">Premium Sound</h4>
-          <p class="text-xs text-white/30 leading-relaxed">Every product hand-tested for audio quality. Only gear that passes our benchmark makes the cut.</p>
+          <h4 class="text-sm font-bold text-white mb-1.5">Premium Quality Products</h4>
+          <p class="text-xs text-white/30 leading-relaxed">Every product is carefully selected to meet our quality standards. Only items that pass our checks make it to our store.</p>
         </div>
         <div class="value-card fade-up" style="animation-delay:0.1s">
           <div class="value-icon bg-blue-500/10 text-blue-400 mb-4"><i class="fa-solid fa-tags"></i></div>
           <h4 class="text-sm font-bold text-white mb-1.5">Fair Pricing</h4>
-          <p class="text-xs text-white/30 leading-relaxed">Direct sourcing, no middlemen. Premium audio at prices that actually make sense.</p>
+          <p class="text-xs text-white/30 leading-relaxed">We source directly to keep prices fair and quality high.</p>
         </div>
         <div class="value-card fade-up" style="animation-delay:0.15s">
           <div class="value-icon bg-green-500/10 text-green-400 mb-4"><i class="fa-solid fa-handshake-angle"></i></div>
@@ -1277,11 +1277,11 @@ tailwind.config = {
           <div class="space-y-2">
             <a href="#" class="social-link">
               <div class="social-icon bg-pink-500/10 text-pink-400"><i class="fa-brands fa-instagram"></i></div>
-              <div><p class="text-xs font-bold text-white/60">Instagram</p><p class="text-[10px] text-white/22">@beatsshop_pk</p></div>
+              <div><p class="text-xs font-bold text-white/60">Instagram</p><p class="text-[10px] text-white/22">@ahmusshop_pk</p></div>
             </a>
             <a href="#" class="social-link">
               <div class="social-icon bg-blue-500/10 text-blue-400"><i class="fa-brands fa-facebook-f"></i></div>
-              <div><p class="text-xs font-bold text-white/60">Facebook</p><p class="text-[10px] text-white/22">BeatsShop Pakistan</p></div>
+              <div><p class="text-xs font-bold text-white/60">Facebook</p><p class="text-[10px] text-white/22">ahumsShop Pakistan</p></div>
             </a>
           </div>
         </div>
@@ -1379,7 +1379,7 @@ tailwind.config = {
       <div class="col-span-2 md:col-span-1">
         <a href="index.php" class="flex items-center gap-3 mb-4" style="text-decoration:none">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center"><i class="fa-solid fa-headphones text-surface-900 text-xs"></i></div>
-          <span class="text-base font-extrabold text-white">Beats<span class="text-gold-400">Shop</span></span>
+          <span class="text-base font-extrabold text-white">AHMUS<span class="text-gold-400">Shop</span></span>
         </a>
         <p class="text-xs text-white/25 leading-relaxed">Premium audio gear for those who demand the best. Engineered with passion.</p>
         <div class="flex items-center gap-3 mt-5">
@@ -1411,7 +1411,9 @@ tailwind.config = {
       </div>
     </div>
     <div class="border-t border-white/[0.03] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <p class="text-xs text-white/50">&copy; <?= date('Y') ?> BeatsShop. All rights reserved.</p>
+      <p class="text-xs text-white/50">
+  &copy; <?= date('Y') ?> AHMUS-Shop. All rights reserved. | Designed by AHMUS Team
+</p>
       <div class="flex items-center gap-4">
         <a href="#" class="text-xs text-white/50 hover:text-white/40 transition">Privacy Policy</a>
         <a href="#" class="text-xs text-white/50 hover:text-white/40 transition">Terms of Service</a>
@@ -1419,6 +1421,36 @@ tailwind.config = {
     </div>
   </div>
 </footer>
+<!-- Online Visitors Widget -->
+<div id="onlineWidget" style="
+  position:fixed; bottom:24px; left:24px; z-index:9999;
+  opacity:0; transform:translateY(10px);
+  transition:all 0.5s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;
+">
+  <div style="
+    display:flex; align-items:center; gap:10px;
+    background:rgba(16,16,24,0.9); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:14px; padding:10px 16px;
+    box-shadow:0 12px 32px -8px rgba(0,0,0,0.6);
+  ">
+    <div style="position:relative; width:10px; height:10px; flex-shrink:0;">
+      <div style="position:absolute; inset:0; border-radius:50%; background:#22c55e; animation:livePulse 1.5s ease infinite;"></div>
+    </div>
+    <div>
+      <p style="font-size:0.65rem; color:rgba(255,255,255,0.3); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Live Now</p>
+      <p style="font-size:1rem; font-weight:800; color:#4ade80; line-height:1; margin-top:2px;">
+        <span class="online-num">0</span> <span style="font-size:0.7rem; color:rgba(34,197,94,0.5); font-weight:600;">visiting</span>
+      </p>
+    </div>
+  </div>
+</div>
+<style>
+  @keyframes livePulse { 0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,0.4); } 50%{ box-shadow:0 0 0 6px rgba(34,197,94,0); } }
+  .online-pop { animation:onlinePop 0.3s ease; }
+  @keyframes onlinePop { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
+</style>
 
 
 <!-- ========== SCRIPTS ========== -->
@@ -1747,6 +1779,41 @@ window.addEventListener('scroll', function() {
 
 var observer = new IntersectionObserver(function(entries) { entries.forEach(function(entry) { if (entry.isIntersecting) entry.target.style.animationPlayState = 'running'; }); }, { threshold: 0.1 });
 document.querySelectorAll('.fade-up').forEach(function(el) { el.style.animationPlayState = 'paused'; observer.observe(el); });
+
+/* ===== VISITOR TRACKING ===== */
+(function(){
+  fetch('backend/track_visitor.php', { method: 'POST' })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success && d.active_count > 0) {
+        updateOnlineWidget(d.active_count);
+      }
+    })
+    .catch(function(){});
+
+  // Refresh active count every 60s
+  setInterval(function(){
+    fetch('backend/get_active_visitors.php')
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if(d.active !== undefined) updateOnlineWidget(d.active); })
+      .catch(function(){});
+  }, 60000);
+})();
+
+function updateOnlineWidget(count) {
+  var w = document.getElementById('onlineWidget');
+  if (!w) return;
+  var numEl = w.querySelector('.online-num');
+  if (numEl) {
+    numEl.textContent = count;
+    numEl.classList.remove('online-pop');
+    void numEl.offsetWidth;
+    numEl.classList.add('online-pop');
+  }
+  w.style.opacity = '1';
+  w.style.transform = 'translateY(0)';
+}
+
 </script>
 
 </body>
