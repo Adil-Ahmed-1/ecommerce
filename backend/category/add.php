@@ -61,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Add Category</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family+Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/all.min.css">
 <script>
 tailwind.config = {
   darkMode: 'class',
@@ -70,11 +70,10 @@ tailwind.config = {
 </script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Plus Jakarta Sans',sans-serif}
-  ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:99px}
-  .sidebar-glass{background:rgba(8,75,46,0.95);backdrop-filter:blur(20px)}.dark .sidebar-glass{background:rgba(3,42,26,0.98)}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.12);border-radius:99px}
+  .sidebar-glass{background:rgba(8,75,46,0.97);backdrop-filter:blur(20px)}.dark .sidebar-glass{background:rgba(3,42,26,0.99)}
   .nav-link{position:relative;transition:all .25s cubic-bezier(.4,0,.2,1)}.nav-link::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;border-radius:0 4px 4px 0;background:#cbcd3a;transition:height .25s cubic-bezier(.4,0,.2,1)}
   .nav-link:hover::before,.nav-link.active::before{height:60%}.nav-link.active{background:rgba(58,205,126,0.12);color:#cbcd3a}.nav-link:hover{background:rgba(255,255,255,0.06)}
-  .sidebar-collapsed .sidebar-text{opacity:0;width:0;overflow:hidden}.sidebar-collapsed .sidebar-logo-text{opacity:0;width:0;overflow:hidden}.sidebar-collapsed .sidebar-avatar{width:36px;height:36px}
   .topbar-border{position:relative}.topbar-border::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(58,205,126,0.3),transparent)}
   .role-badge{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:6px}
   .role-admin{background:rgba(58,205,126,0.15);color:#cbcd3a}.role-user{background:rgba(96,165,250,0.15);color:#60a5fa}
@@ -86,16 +85,123 @@ tailwind.config = {
   @keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
   .dropdown-enter{animation:dropIn .2s cubic-bezier(.4,0,.2,1) forwards}
   @keyframes dropIn{from{opacity:0;transform:translateY(-8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-  .form-input{width:100%;padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;outline:none;transition:all .2s}
-  .dark .form-input{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85)}
-  .form-input:focus{border-color:#16b364;box-shadow:0 0 0 3px rgba(22,179,100,0.1)}
-  .form-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px}
-  .dark .form-label{color:rgba(255,255,255,0.7)}
-  textarea.form-input{resize:vertical;min-height:100px}
-  .upload-zone{border:2px dashed #d1d5db;border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:all .2s}
-  .dark .upload-zone{border-color:rgba(255,255,255,0.1)}
-  .upload-zone:hover,.upload-zone.dragover{border-color:#16b364;background:rgba(22,179,100,0.03)}
-  .char-count{font-size:10px;color:#9ca3af;transition:color .2s}.char-count.warn{color:#f59e0b}.char-count.danger{color:#ef4444}
+
+  .fi{width:100%;padding:11px 14px;border-radius:12px;border:1.5px solid #e5e7eb;background:#fff;color:#1f2937;font-size:13px;font-weight:500;outline:none;transition:all .2s}
+  .dark .fi{background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.07);color:rgba(255,255,255,0.9)}
+  .fi::placeholder{color:#b0b8c4;font-weight:400}
+  .fi:focus{border-color:#16b364;box-shadow:0 0 0 3px rgba(22,179,100,0.08)}
+  .fi:hover:not(:focus){border-color:#d1d5db}
+  .dark .fi:hover:not(:focus){border-color:rgba(255,255,255,0.12)}
+  textarea.fi{resize:vertical;min-height:100px;line-height:1.6}
+  .fl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;margin-bottom:7px;letter-spacing:.01em}
+  .dark .fl{color:rgba(255,255,255,0.65)}
+  .fl .req{color:#ef4444;font-size:14px;line-height:0}
+  .fl .opt{font-size:10px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em}
+  .dark .fl .opt{color:rgba(255,255,255,0.25)}
+
+  .upload-zone{border:2px dashed #e0e3e8;border-radius:16px;padding:24px;text-align:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+  .dark .upload-zone{border-color:rgba(255,255,255,0.08)}
+  .upload-zone:hover{border-color:#16b364;background:rgba(22,179,100,0.02)}
+  .upload-zone.dragover{border-color:#16b364;background:rgba(22,179,100,0.04);transform:scale(1.005)}
+  .upload-zone.has-image{border-style:solid;border-color:#16b364;background:rgba(22,179,100,0.02)}
+  .dark .upload-zone.has-image{border-color:rgba(22,179,100,0.4)}
+
+  .status-pill{position:relative;cursor:pointer}
+  .status-pill input{position:absolute;opacity:0;pointer-events:none}
+  .status-pill .pill{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1.5px solid #e5e7eb;background:#fff;transition:all .2s;font-size:13px;font-weight:600;color:#6b7280}
+  .dark .status-pill .pill{border-color:rgba(255,255,255,0.07);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.4)}
+  .status-pill .pill:hover{border-color:#d1d5db}
+  .dark .status-pill .pill:hover{border-color:rgba(255,255,255,0.12)}
+  .status-pill input:checked+.pill{border-color:#16b364;background:rgba(22,179,100,0.06);color:#16b364}
+  .dark .status-pill input:checked+.pill{border-color:rgba(22,179,100,0.5);background:rgba(22,179,100,0.08);color:#3acd7e}
+  .status-pill input:checked+.pill .pill-dot{background:#16b364;box-shadow:0 0 8px rgba(22,179,100,0.4)}
+  .pill-dot{width:8px;height:8px;border-radius:50%;background:#d1d5db;transition:all .2s}
+  .dark .pill-dot{background:rgba(255,255,255,0.15)}
+  .status-pill input:focus-visible+.pill{box-shadow:0 0 0 3px rgba(22,179,100,0.12)}
+
+  .char-ct{font-size:10px;font-weight:600;color:#c4c9d1;transition:color .2s;font-variant-numeric:tabular-nums}
+  .char-ct.warn{color:#f59e0b}.char-ct.danger{color:#ef4444}
+
+  .section-line{height:1px;background:linear-gradient(90deg,transparent,#e5e7eb 20%,#e5e7eb 80%,transparent)}
+  .dark .section-line{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05) 20%,rgba(255,255,255,0.05) 80%,transparent)}
+
+  .sticky-actions{position:sticky;bottom:0;background:linear-gradient(to top,#f4f6f8 60%,transparent);padding:16px 0 0}
+  .dark .sticky-actions{background:linear-gradient(to top,#0a0f0d 60%,transparent)}
+
+  .hero-banner{position:relative;overflow:hidden;background:linear-gradient(135deg,#084b2e 0%,#032a1a 50%,#084b2e 100%);border-radius:20px}
+  .hero-banner::before{content:'';position:absolute;top:-40%;right:-20%;width:300px;height:300px;border-radius:50%;background:rgba(22,179,100,0.08);filter:blur(60px)}
+  .hero-banner::after{content:'';position:absolute;bottom:-30%;left:-10%;width:250px;height:250px;border-radius:50%;background:rgba(203,205,58,0.06);filter:blur(50px)}
+  .hero-grid{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,0.03) 1px,transparent 1px);background-size:24px 24px}
+
+  .remove-img{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:11px;opacity:0;transform:scale(.8)}
+  .upload-zone:hover .remove-img{opacity:1;transform:scale(1)}
+  .remove-img:hover{background:rgba(239,68,68,0.8)}
+
+  .slug-link{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#d1d5db;transition:color .15s;pointer-events:none}
+  .dark .slug-link{color:rgba(255,255,255,0.15)}
+
+  /* Sidebar responsive */
+  #sidebar{transition:transform .3s cubic-bezier(.4,0,.2,1)}
+  #sidebarOverlay{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s}
+  #sidebarOverlay.show{opacity:1;pointer-events:auto}
+
+  @media(min-width:1024px){
+    #sidebar{transform:translateX(0)!important}
+    #sidebarOverlay{display:none!important}
+    #mainArea{margin-left:260px}
+    #mainArea.sidebar-collapsed{margin-left:78px}
+    #sidebar.sidebar-collapsed .sidebar-text{opacity:0;width:0;overflow:hidden}
+    #sidebar.sidebar-collapsed .sidebar-logo-text{opacity:0;width:0;overflow:hidden}
+    #sidebar.sidebar-collapsed .sidebar-avatar{width:36px!important;height:36px!important}
+    #sidebar.sidebar-collapsed .sidebar-section-label{opacity:0;height:0;margin:0;padding:0;overflow:hidden}
+    .mobile-menu-btn{display:none!important}
+  }
+
+  @media(max-width:1023px){
+    #sidebar{transform:translateX(-100%);z-index:50;will-change:transform}
+    #sidebar.sidebar-open{transform:translateX(0)}
+    #mainArea{margin-left:0!important}
+    .mobile-menu-btn{display:flex!important}
+  }
+
+  /* Main content responsive padding */
+  @media(max-width:639px){
+    .form-padding{padding:16px!important}
+    .hero-banner{padding:20px!important;border-radius:16px!important}
+    .hero-icon{width:48px!important;height:48px!important}
+    .hero-title{font-size:1.1rem!important}
+    .hero-desc{font-size:11px!important;max-width:100%!important}
+    .hero-steps{display:none!important}
+    .section-card{padding:16px!important;border-radius:16px!important}
+    .section-header{padding:14px 16px!important}
+    .form-grid{grid-template-columns:1fr!important}
+    .upload-inner{padding:20px!important}
+    .upload-icon{width:48px!important;height:48px!important}
+    .upload-text{font-size:12px!important}
+    .upload-sub{font-size:10px!important}
+    .status-section{padding:16px!important}
+    .sticky-actions{padding:14px 16px!important}
+    .sticky-inner{flex-direction:column!important;gap:10px!important}
+    .sticky-hint{display:none!important}
+  }
+
+  @media(min-width:640px) and (max-width:1023px){
+    .form-grid{grid-template-columns:1fr 1fr!important}
+    .hero-steps{display:flex!important}
+    .hero-banner{padding:28px!important}
+    .hero-icon{width:56px!important;height:56px!important}
+    .hero-title{font-size:1.25rem!important}
+    .hero-desc{max-width:80%!important}
+    .section-card{padding:20px!important}
+    .section-header{padding:16px 20px!important}
+    .upload-inner{padding:24px!important}
+    .upload-icon{width:56px!important;height:56px!important}
+    .sticky-hint{display:none!important}
+  }
+
+  @media(min-width:1024px){
+    .form-padding{padding:24px!important}
+  }
 </style>
 </head>
 
@@ -106,45 +212,57 @@ tailwind.config = {
   <?php unset($_SESSION['toast']); ?>
 <?php endif; ?>
 
+<!-- Mobile Overlay -->
+<div id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+
 <!-- SIDEBAR -->
-<aside id="sidebar" class="sidebar-glass fixed left-0 top-0 h-full w-[260px] text-white z-50 transition-all duration-300 flex flex-col">
+<aside id="sidebar" class="sidebar-glass fixed left-0 top-0 h-full w-[260px] text-white z-50 flex flex-col">
   <div class="flex items-center justify-between px-5 pt-6 pb-4">
     <div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-brand-400 flex items-center justify-center text-brand-950 font-extrabold text-sm shrink-0">A</div><span class="sidebar-logo-text font-bold text-base tracking-tight transition-all duration-300">AdminPanel</span></div>
-    <button onclick="toggleSidebar()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition text-sm"><i class="fa-solid fa-bars text-xs"></i></button>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleSidebarCollapse()" class="hidden lg:flex w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 items-center justify-center transition text-sm"><i class="fa-solid fa-bars text-xs"></i></button>
+      <button onclick="closeMobileSidebar()" class="lg:hidden w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition text-sm"><i class="fa-solid fa-xmark text-xs"></i></button>
+    </div>
   </div>
   <div class="px-5 py-4 flex items-center gap-3 border-t border-white/10">
     <img src="<?= $user_image ?>" class="sidebar-avatar w-10 h-10 rounded-xl object-cover border-2 border-brand-400/40 transition-all duration-300 shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
     <div class="sidebar-text transition-all duration-300"><div class="flex items-center gap-2"><p class="text-sm font-semibold leading-tight"><?= htmlspecialchars($user_name) ?></p><span class="role-badge <?= $user_role === 'Admin' ? 'role-admin' : 'role-user' ?>"><?= $user_role ?></span></div><p class="text-[11px] text-white/50 mt-0.5"><?= htmlspecialchars($user_email) ?></p></div>
   </div>
-  <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
+  <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto pb-4">
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
-    <a href="dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
-    <?php if ($user_role === 'Admin') { ?>
+    <a href="../dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
+    <?php if ($user_role === 'Admin' || $user_role === '1') { ?>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Manage</p>
-    <a href="category/add.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
+    <a href="add.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
     <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
-    <a href="product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
-    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
+    <a href="../product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
+    <a href="../product/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Sales</p>
-    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
-    <a href="payments.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
+    <a href="../orders/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
+    <a href="../payments/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
     <?php } ?>
   </nav>
-  <div class="px-3 pb-5"><div class="sidebar-text bg-white/5 rounded-xl p-4 transition-all duration-300"><p class="text-[11px] text-white/40 mb-1">Storage Used</p><div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full w-[38%] bg-gradient-to-r from-brand-400 to-brand-300 rounded-full"></div></div><p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p></div></div>
+  <div class="px-3 pb-5"><div class="sidebar-text bg-white/5 rounded-xl p-4 transition-all duration-300"><p class="text-[11px] text-white/40 mb-1">Storage</p><div class="w-full h-1.5 bg-white/10 rounded-full overflow:hidden"><div class="h-full w-[38%] bg-gradient-to-r from-brand-400 to-brand-300 rounded-full"></div></div><p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p></div></div>
 </aside>
 
 <!-- MAIN -->
-<main id="main" class="ml-[260px] min-h-screen transition-all duration-300">
-  <header class="topbar-border sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
-    <div class="flex items-center gap-3">
-      <a href="category/view.php" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-500 dark:text-white/60"><i class="fa-solid fa-arrow-left text-xs"></i></a>
-      <div><h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Add Category</h1><p class="text-xs text-gray-400 mt-0.5">Create a new product category</p></div>
+<main id="mainArea" class="min-h-screen transition-all duration-300">
+  <header class="topbar-border sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-filter-xl px-4 sm:px-6 lg:px-8 py-3 lg:py-4 flex justify-between items-center gap-3 shrink-0">
+    <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+      <button onclick="openMobileSidebar()" class="mobile-menu-btn w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 items-center justify-center transition text-gray-600 dark:text-white/70">
+        <i class="fa-solid fa-bars text-sm"></i>
+      </button>
+      <a href="view.php" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-500 dark:text-white/60 shrink-0"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+      <div class="min-w-0">
+        <h1 class="text-base sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight truncate">Add Category</h1>
+        <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">Create a new product category</p>
+      </div>
     </div>
-    <div class="flex items-center gap-3">
-      <button onclick="toggleDark()" id="darkBtn" class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-600 dark:text-white/70"><i class="fa-solid fa-moon text-sm"></i></button>
+    <div class="flex items-center gap-2 sm:gap-3">
+      <button onclick="toggleDark()" id="darkBtn" class="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-600 dark:text-white/70"><i class="fa-solid fa-moon text-sm"></i></button>
       <div class="relative">
         <button onclick="toggleMenu()" class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
-          <img src="<?= $user_image ?>" class="w-8 h-8 rounded-lg object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
+          <img src="<?= $user_image ?>" class="w-7 h-7 lg:w-8 lg:h-8 rounded-lg object-cover" onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($user_name) ?>&background=16b364&color=fff&bold=true'">
           <span class="hidden sm:block text-sm font-semibold text-gray-900 dark:text-white"><?= htmlspecialchars($user_name) ?></span>
           <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
         </button>
@@ -156,82 +274,240 @@ tailwind.config = {
     </div>
   </header>
 
-  <div class="px-8 py-6">
-    <div class="fade-up max-w-2xl">
-      <?php if ($error): ?>
-        <div class="mb-5 flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl text-sm text-red-600 dark:text-red-400 font-medium"><i class="fa-solid fa-circle-exclamation text-xs"></i><?= htmlspecialchars($error) ?></div>
-      <?php endif; ?>
+  <div class="form-padding flex-1 px-3 sm:px-4 lg:px-8 py-4 sm:py-6 pb-2">
 
-      <form method="POST" enctype="multipart/form-data" class="bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-6 space-y-5">
-
-        <!-- Category Name -->
-        <div>
-          <label class="form-label">Category Name <span class="text-red-400">*</span></label>
-          <input type="text" name="name" id="catName" value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" class="form-input" placeholder="e.g. Electronics" required oninput="autoSlug()">
+    <!-- Hero Banner -->
+    <div class="fade-up hero-banner p-5 sm:p-7 mb-5 sm:mb-6" style="animation-delay:.05s">
+      <div class="hero-grid"></div>
+      <div class="relative z-10 flex items-center gap-3 sm:gap-5">
+        <div class="hero-icon w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-folder-plus text-lg sm:text-2xl text-brand-300"></i>
         </div>
-
-        <!-- Slug -->
-        <div>
-          <label class="form-label">Slug</label>
-          <input type="text" name="slug" id="catSlug" value="<?= htmlspecialchars($_POST['slug'] ?? '') ?>" class="form-input" placeholder="auto-generated-from-name">
-          <p class="text-[10px] text-gray-400 mt-1">URL-friendly version. Auto-generated if left empty.</p>
+        <div class="min-w-0">
+          <h2 class="hero-title text-base sm:text-lg font-bold text-white tracking-tight">New Category</h2>
+          <p class="hero-desc text-[11px] sm:text-xs text-white/40 mt-1 max-w-md leading-relaxed">Fill in the details to create a category.</p>
         </div>
+      </div>
+      <!-- Steps — hidden on mobile -->
+      <div class="hero-steps relative z-10 flex items-center gap-2 mt-4 sm:mt-5 ml-[60px] sm:ml-[76px]">
+        <div class="flex items-center gap-2 text-[11px] font-semibold"><span class="w-5 h-5 rounded-md bg-brand-400 text-brand-950 flex items-center justify-center text-[10px] font-extrabold">1</span><span class="text-white/80">Details</span></div>
+        <div class="w-6 sm:w-8 h-px bg-white/10"></div>
+        <div class="flex items-center gap-2 text-[11px] font-semibold"><span class="w-5 h-5 rounded-md bg-white/10 text-white/40 flex items-center justify-center text-[10px] font-extrabold">2</span><span class="text-white/30">Image & Status</span></div>
+        <div class="w-6 sm:w-8 h-px bg-white/10"></div>
+        <div class="flex items-center gap-2 text-[11px] font-semibold"><span class="w-5 h-5 rounded-md bg-white/10 text-white/40 flex items-center justify-center text-[10px] font-extrabold">3</span><span class="text-white/30">Publish</span></div>
+      </div>
+    </div>
 
-        <!-- Description -->
-        <div>
-          <label class="form-label">Description</label>
-          <textarea name="description" id="catDesc" class="form-input" placeholder="Brief description about this category..." maxlength="500" oninput="updateCharCount()"><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
-          <div class="flex items-center justify-between mt-1">
-            <p class="text-[10px] text-gray-400">Optional — helps with SEO and organization</p>
-            <span id="charCount" class="char-count">0 / 500</span>
+    <?php if ($error): ?>
+      <div class="fade-up mb-5 flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-3.5 bg-red-50 dark:bg-red-900/10 border border-red-200/60 dark:border-red-900/20 rounded-xl text-sm text-red-600 dark:text-red-400 font-semibold" style="animation-delay:.1s">
+        <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center shrink-0"><i class="fa-solid fa-circle-exclamation text-xs text-red-500"></i></div>
+        <?= htmlspecialchars($error) ?>
+      </div>
+    <?php endif; ?>
+
+    <form method="POST" enctype="multipart/form-data" id="catForm">
+
+      <!-- SECTION 1: Details -->
+      <div class="fade-up section-card bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden mb-4 sm:mb-5" style="animation-delay:.12s">
+        <div class="section-header flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-white/5">
+          <div class="w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-900/15 flex items-center justify-center"><i class="fa-solid fa-pen-nib text-xs text-brand-500"></i></div>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900 dark:text-white">Category Details</h3>
+            <p class="text-[10px] text-gray-400 mt-0.5">Basic information</p>
           </div>
         </div>
+        <div class="form-padding p-4 sm:p-6">
+          <div class="form-grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            <!-- Name -->
+            <div>
+              <label class="fl"><i class="fa-solid fa-tag text-[10px] text-gray-400"></i>Category Name <span class="req">*</span></label>
+              <input type="text" name="name" id="catName" value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" class="fi" placeholder="e.g. Electronics" required oninput="autoSlug()">
+            </div>
+            <!-- Slug -->
+            <div>
+              <label class="fl"><i class="fa-solid fa-link text-[10px] text-gray-400"></i>URL Slug <span class="opt">auto</span></label>
+              <div class="relative">
+                <input type="text" name="slug" id="catSlug" value="<?= htmlspecialchars($_POST['slug'] ?? '') ?>" class="fi pr-10" placeholder="auto-generated-from-name">
+                <i class="fa-solid fa-link slug-link text-[11px]"></i>
+              </div>
+              <p class="text-[10px] text-gray-400 mt-1.5 flex items-center gap-1"><i class="fa-solid fa-circle-info text-[8px]"></i>Leave empty to auto-generate</p>
+            </div>
+          </div>
+          <!-- Description -->
+          <div class="sm:mt-5">
+            <label class="fl"><i class="fa-solid fa-align-left text-[10px] text-gray-400"></i>Description <span class="opt">optional</span></label>
+            <textarea name="description" id="catDesc" class="fi" placeholder="Describe the category..." maxlength="500" oninput="updateCharCount()"><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
+            <div class="flex items-center justify-between mt-1.5">
+              <p class="text-[10px] text-gray-400 flex items-center gap-1"><i class="fa-solid fa-lightbulb text-[8px] text-amber-400"></i>Helps with SEO</p>
+              <span id="charCount" class="char-ct">0 / 500</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Image & Status -->
+      <div class="fade-up grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4 sm:mb-5" style="animation-delay:.18s">
 
         <!-- Image -->
-        <div>
-          <label class="form-label">Image</label>
-          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('catImage').click()">
-            <input type="file" name="image" id="catImage" accept="image/*" class="hidden" onchange="previewImage(this)">
-            <div id="uploadPlaceholder">
-              <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-300 dark:text-gray-600 mb-2"></i>
-              <p class="text-xs text-gray-400 font-medium">Click or drag to upload</p>
-              <p class="text-[10px] text-gray-300 dark:text-gray-600 mt-0.5">JPG, PNG, WebP, GIF</p>
+        <div class="lg:col-span-3 bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
+          <div class="section-header flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-white/5">
+            <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/15 flex items-center justify-center"><i class="fa-solid fa-image text-xs text-purple-500"></i></div>
+            <div>
+              <h3 class="text-sm font-bold text-gray-900 dark:text-white">Category Image</h3>
+              <p class="text-[10px] text-gray-400 mt-0.5">Visual representation</p>
             </div>
-            <img id="imagePreview" src="" class="hidden max-h-40 rounded-xl mx-auto">
+          </div>
+          <div class="form-padding p-4 sm:p-6">
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('catImage').click()">
+              <input type="file" name="image" id="catImage" accept="image/*" class="hidden" onchange="previewImage(this)">
+              <div id="uploadPlaceholder">
+                <div class="upload-icon w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center mx-auto mb-3">
+                  <i class="fa-solid fa-cloud-arrow-up text-xl sm:text-2xl text-gray-300 dark:text-gray-600"></i>
+                </div>
+                <p class="upload-text text-xs sm:text-sm font-semibold text-gray-600 dark:text-white/50">Drop image here or browse</p>
+                <p class="upload-sub text-[10px] sm:text-[11px] text-gray-400">JPG, PNG, WebP, GIF · Max 2MB</p>
+              </div>
+              <div id="imagePreviewWrap" class="hidden relative">
+                <img id="imagePreview" src="" class="max-h-40 sm:max-h-48 rounded-xl mx-auto object-contain">
+                <button type="button" class="remove-img" onclick="event.stopPropagation(); clearImage()"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Status -->
-        <div>
-          <label class="form-label">Status</label>
-          <select name="status" class="form-input">
-            <option value="active" <?= ($_POST['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
-            <option value="inactive" <?= ($_POST['status'] ?? '') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
-          </select>
-        </div>
+        <div class="lg:col-span-2 bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
+          <div class="section-header flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-white/5">
+            <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/15 flex items-center justify-center"><i class="fa-solid fa-toggle-on text-xs text-amber-500"></i></div>
+            <div>
+              <h3 class="text-sm font-bold text-gray-900 dark:text-white">Status</h3>
+              <p class="text-[10px] text-gray-400 mt-0.5">Visibility</p>
+            </div>
+          </div>
+          <div class="form-padding p-4 sm:p-6 space-y-3.5">
+            <label class="status-pill block">
+              <input type="radio" name="status" value="active" <?= ($_POST['status'] ?? 'active') === 'active' ? 'checked' : '' ?>>
+                <div class="pill">
+                  <span class="pill-dot"></span>
+                  <div>
+                    <p class="text-sm font-semibold">Active</p>
+                    <p class="text-[10px] font-normal opacity-60 mt-0.5">Visible to customers</p>
+                  </div>
+                  <i class="fa-solid fa-eye ml-auto text-xs opacity-40"></i>
+                </div>
+              </label>
+            <label class="status-pill block">
+              <input type="radio" name="status" value="inactive" <?= ($_POST['status'] ?? '') === 'inactive' ? 'checked' : '' ?>>
+                <div class="pill">
+                  <span class="pill-dot"></span>
+                  <div>
+                    <p class="text-sm font-semibold">Inactive</p>
+                    <p class="text-[10px] font-normal opacity-60 mt-0.5">Hidden from catalog</p>
+                  </div>
+                  <i class="fa-solid fa-eye-slash ml-auto text-xs opacity-40"></i>
+                </div>
+              </label>
 
-        <!-- Buttons -->
-        <div class="flex gap-3 pt-2">
-          <button type="submit" class="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-plus mr-2 text-xs"></i>Add Category</button>
-          <a href="category/view.php" class="px-6 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Cancel</a>
+            <div class="section-line my-4"></div>
+
+            <div class="space-y-2.5">
+              <div class="flex items-center gap-2.5 text-[11px] text-gray-400"><i class="fa-solid fa-shield-halved text-[10px] text-brand-400"></i><span>Safe to change anytime</span></div>
+              <div class="flex items-center gap-2.5 text-[11px] text-gray-400"><i class="fa-solid fa-box text-[10px] text-brand-400"></i><span>Products unaffected</span></div>
+            </div>
+          </div>
         </div>
-      </form>
-    </div>
+      </div>
+
+      <!-- STICKY ACTIONS -->
+      <div class="sticky-actions fade-up" style="animation-delay:.24s">
+        <div class="bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <a href="view.php" class="sticky-inner w-full sm:w-auto px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-xmark text-xs"></i>Discard
+          </a>
+          <div class="sticky-inner flex items-center gap-3 w-full sm:w-auto">
+            <p class="sticky-hint hidden sm:block text-[11px] text-gray-400"><i class="fa-solid fa-circle-info text-[9px] mr-1"></i>Required fields are marked with <span class="text-red-400">*</span></p>
+            <button type="submit" class="w-full sm:w-auto px-6 sm:px-7 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30">
+              <i class="fa-solid fa-check text-xs"></i>Create Category
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </form>
   </div>
 </main>
 
 <script>
-function toggleSidebar(){const s=document.getElementById('sidebar'),m=document.getElementById('main'),c=s.classList.toggle('sidebar-collapsed');s.style.width=c?'78px':'260px';m.style.marginLeft=c?'78px':'260px'}
+function openMobileSidebar(){document.getElementById('sidebar').classList.add('sidebar-open');document.getElementById('sidebarOverlay').classList.add('show');document.body.style.overflow='hidden'}
+function closeMobileSidebar(){document.getElementById('sidebar').classList.remove('sidebar-open');document.getElementById('sidebarOverlay').classList.remove('show');document.body.style.overflow=''}
+function toggleSidebarCollapse(){document.getElementById('sidebar').classList.toggle('sidebar-collapsed');const s=document.getElementById('sidebar'),m=document.getElementById('mainArea'),c=s.classList.contains('sidebar-collapsed');s.style.width=c?'78px':'260px';m.style.marginLeft=c?'78px':'260px'}
 function toggleDark(){const h=document.documentElement,b=document.body,btn=document.getElementById('darkBtn'),d=b.classList.toggle('dark');h.classList.toggle('dark',d);btn.innerHTML=d?'<i class="fa-solid fa-sun text-sm"></i>':'<i class="fa-solid fa-moon text-sm"></i>'}
 function toggleMenu(){document.getElementById('menu').classList.toggle('hidden')}
 document.addEventListener('click',function(e){const m=document.getElementById('menu');if(!e.target.closest('.relative')&&!m.classList.contains('hidden'))m.classList.add('hidden')});
-function autoSlug(){const n=document.getElementById('catName').value;document.getElementById('catSlug').value=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}
-function previewImage(input){const file=input.files[0];if(file){const reader=new FileReader();reader.onload=function(e){document.getElementById('imagePreview').src=e.target.result;document.getElementById('imagePreview').classList.remove('hidden');document.getElementById('uploadPlaceholder').classList.add('hidden')};reader.readAsDataURL(file)}}
-function updateCharCount(){const t=document.getElementById('catDesc'),c=document.getElementById('charCount'),len=t.value.length;c.textContent=len+' / 500';c.className='char-count'+(len>450?' danger':len>350?' warn':'')}
-const uz=document.getElementById('uploadZone');uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('dragover')});uz.addEventListener('dragleave',()=>uz.classList.remove('dragover'));uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('dragover');if(e.dataTransfer.files.length){document.getElementById('catImage').files=e.dataTransfer.files;previewImage(document.getElementById('catImage'))}});
-/* Init char count on load */
-updateCharCount();
-</script>
 
+function autoSlug(){
+  const n=document.getElementById('catName').value;
+  document.getElementById('catSlug').value=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+function previewImage(input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>2*1024*1024){showFormMsg('Image must be under 2MB','error');input.value='';return}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById('imagePreview').src=e.target.result;
+    document.getElementById('imagePreviewWrap').classList.remove('hidden');
+    document.getElementById('uploadPlaceholder').classList.add('hidden');
+    document.getElementById('uploadZone').classList.add('has-image');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage(){
+  document.getElementById('catImage').value='';
+  document.getElementById('imagePreview').src='';
+  document.getElementById('imagePreviewWrap').classList.add('hidden');
+  document.getElementById('uploadPlaceholder').classList.remove('hidden');
+  document.getElementById('uploadZone').classList.remove('has-image');
+}
+
+function updateCharCount(){
+  const t=document.getElementById('catDesc'),c=document.getElementById('charCount'),len=t.value.length;
+  c.textContent=len+' / 500';
+  c.className='char-ct'+(len>450?' danger':len>350?' warn':'');
+}
+
+function showFormMsg(msg,type){
+  let el=document.getElementById('formMsg');
+  if(!el){el=document.createElement('div');el.id='formMsg';el.style.animation='fadeUp .3s ease forwards';document.getElementById('catForm').prepend(el)}
+  el.className='mb-5 flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl text-sm font-semibold '+(type==='error'?'bg-red-50 dark:bg-red-900/10 border border-red-200/60 dark:border-red-900/20 text-red-600 dark:text-red-400':'bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-900/20 text-emerald-600 dark:text-emerald-400');
+  el.innerHTML='<div class="w-8 h-8 rounded-lg '+(type==='error'?'bg-red-100 dark:bg-red-900/20':'bg-emerald-100 dark:bg-emerald-900/20')+' flex items-center justify-center shrink-0"><i class="fa-solid fa-'+(type==='error'?'circle-exclamation':'check')+' text-xs '+(type==='error'?'text-red-500':'text-emerald-500')+'"></i></div>'+msg;
+  setTimeout(()=>{if(el)el.remove()},4000);
+}
+
+/* Drag & Drop */
+const uz=document.getElementById('uploadZone');
+['dragenter','dragover'].forEach(ev=>uz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();uz.classList.add('dragover')}));
+['dragleave','drop'].forEach(ev=>uz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();uz.classList.remove('dragover')}));
+uz.addEventListener('drop',function(e){
+  e.preventDefault();uz.classList.remove('dragover');
+  if(e.dataTransfer.files.length){
+    const dt=new DataTransfer();dt.items.add(e.dataTransfer.files[0]);
+    document.getElementById('catImage').files=dt.files;
+    previewImage(document.getElementById('catImage'));
+  }
+});
+
+/* Init */
+updateCharCount();
+
+/* Keyboard shortcut */
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){
+    e.preventDefault();
+    document.getElementById('catForm').dispatchEvent(new Event('submit',{cancelable:true});
+  }
+});
+</script>
 </body>
 </html>

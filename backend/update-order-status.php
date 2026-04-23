@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 if ($order_id <= 0) {
     $_SESSION['toast'] = ['type' => 'error', 'message' => 'Invalid order'];
-    header("Location: ../orders/view.php");
+    header("Location: view.php");
     exit;
 }
 
@@ -29,7 +29,7 @@ if ($order_id <= 0) {
 
 if (!in_array($status, $valid_statuses)) {
     $_SESSION['toast'] = ['type' => 'error', 'message' => 'Invalid status'];
-    header("Location: ../orders/view.php");
+    header("Location: view.php");
     exit;
 }
 

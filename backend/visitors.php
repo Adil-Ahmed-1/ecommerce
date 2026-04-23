@@ -1,13 +1,13 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== '1') {
     header("Location: ../user/login.php");
     exit();
 }
 include('../backend/config/db.php');
 
 // Clean stale
-mysqli_query($conn, "DELETE FROM active_visitors WHERE last_activity < NOW() - INTERVAL 3 MINUTE");
+mysqli_query($conn, "DELETE FROM active_visitors WHERE last_activity < NOW() - INTERVAL 1 hour");
 
 /* ===== FILTERS ===== */
  $filter_date   = $_GET['date'] ?? '';

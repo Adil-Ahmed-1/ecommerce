@@ -133,7 +133,7 @@ tailwind.config = {
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
     <a href="dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
-    <?php if ($user_role === 'Admin') { ?>
+    <?php if ($user_role === '1') { ?>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Manage</p>
     <a href="category/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
     <a href="category/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
@@ -237,7 +237,7 @@ tailwind.config = {
               </td>
               <td class="px-5 py-3.5 font-bold text-gray-900 dark:text-white text-xs">Rs. <?= number_format($row['total_amount'], 0) ?></td>
               <td class="px-5 py-3.5">
-                <form method="POST" action="../process/update-order-status.php" class="inline">
+                <form method="POST" action="update-order-status.php" class="inline">
                   <input type="hidden" name="order_id" value="<?= $row['id'] ?>">
                   <input type="hidden" name="redirect" value="view">
                   <input type="hidden" name="status_filter" value="<?= $status_filter ?>">

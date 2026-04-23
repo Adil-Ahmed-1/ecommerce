@@ -41,12 +41,106 @@ if (isset($_GET['toggle'])) {
     }
 }
 
+/* ===== CSV UPLOAD ===== */
+ $csv_errors = [];
+ $csv_success = 0;
+
+if (isset($_POST['csv_upload']) && isset($_FILES['csv_file'])) {
+    $file = $_FILES['csv_file'];
+    
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $csv_errors[] = "File upload failed. Error code: " . $file['error'];
+    } else {
+        $allowed_ext = ['csv'];
+        $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        
+        if (!in_array($file_ext, $allowed_ext)) {
+            $csv_errors[] = "Only .csv files are allowed.";
+        } elseif ($file['size'] > 5 * 1024 * 1024) {
+            $csv_errors[] = "File size must be under 5MB.";
+        } else {
+            if (($handle = fopen($file['tmp_name'], 'r')) !== FALSE) {
+                $row_num = 0;
+                $required_headers = ['name', 'slug'];
+                $optional_headers = ['status'];
+                
+                while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
+                    $row_num++;
+                    
+                    if ($row_num === 1) {
+                        $headers = array_map('strtolower', array_map('trim', $data));
+                        
+                        foreach ($required_headers as $rh) {
+                            if (!in_array($rh, $headers)) {
+                                $csv_errors[] = "Missing required column: '$rh'. Your CSV must have: " . implode(', ', $required_headers) . " (and optionally: " . implode(', ', $optional_headers) . ")";
+                                break 2;
+                            }
+                        }
+                        continue;
+                    }
+                    
+                    if (empty(array_filter($data))) continue;
+                    
+                    $row_assoc = [];
+                    foreach ($headers as $idx => $header) {
+                        $row_assoc[$header] = trim($data[$idx] ?? '');
+                    }
+                    
+                    $name = mysqli_real_escape_string($conn, $row_assoc['name']);
+                    $slug = mysqli_real_escape_string($conn, $row_assoc['slug']);
+                    $status = isset($row_assoc['status']) ? mysqli_real_escape_string($conn, $row_assoc['status']) : 'active';
+                    
+                    if (empty($name)) {
+                        $csv_errors[] = "Row $row_num: Name is empty, skipped.";
+                        continue;
+                    }
+                    if (empty($slug)) {
+                        $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
+                    }
+                    
+                    $status = strtolower($status);
+                    if (!in_array($status, ['active', 'inactive'])) {
+                        $status = 'active';
+                    }
+                    
+                    $dup = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id FROM categories WHERE slug = '$slug'"));
+                    if ($dup) {
+                        $csv_errors[] = "Row $row_num: Slug '$slug' already exists (ID: {$dup['id']}), skipped.";
+                        continue;
+                    }
+                    
+                    $insert = mysqli_query($conn, "INSERT INTO categories (name, slug, status, created_at) VALUES ('$name', '$slug', '$status', NOW())");
+                    if ($insert) {
+                        $csv_success++;
+                    } else {
+                        $csv_errors[] = "Row $row_num: Database error — " . mysqli_error($conn);
+                    }
+                }
+                fclose($handle);
+                
+                if ($csv_success > 0 && empty($csv_errors)) {
+                    $_SESSION['toast'] = ['type' => 'success', 'message' => "$csv_success categories imported successfully!"];
+                    header("Location: view.php");
+                    exit;
+                }
+            } else {
+                $csv_errors[] = "Could not read the CSV file.";
+            }
+        }
+    }
+}
+
  $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
  $where = "1=1";
 if ($search) $where .= " AND (name LIKE '%$search%' OR slug LIKE '%$search%')";
 
  $cats_res = mysqli_query($conn, "SELECT c.*, (SELECT COUNT(*) FROM products WHERE category_id = c.id) as product_count FROM categories c WHERE $where ORDER BY c.created_at DESC");
  $total_cats = mysqli_num_rows($cats_res);
+
+/* ===== Stats ===== */
+ $active_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM categories WHERE status='active'"))['c'];
+ $inactive_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM categories WHERE status='inactive'"))['c'];
+ $total_products = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM products"))['c'];
 ?>
 
 <!DOCTYPE html>
@@ -63,7 +157,7 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
 </script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Plus Jakarta Sans',sans-serif}
-  ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:99px}
+  ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:99px}
   .sidebar-glass{background:rgba(8,75,46,0.95);backdrop-filter:blur(20px)}.dark .sidebar-glass{background:rgba(3,42,26,0.98)}
   .nav-link{position:relative;transition:all .25s cubic-bezier(.4,0,.2,1)}.nav-link::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;border-radius:0 4px 4px 0;background:#cbcd3a;transition:height .25s cubic-bezier(.4,0,.2,1)}
   .nav-link:hover::before,.nav-link.active::before{height:60%}.nav-link.active{background:rgba(58,205,126,0.12);color:#cbcd3a}.nav-link:hover{background:rgba(255,255,255,0.06)}
@@ -79,9 +173,19 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
   @keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
   .dropdown-enter{animation:dropIn .2s cubic-bezier(.4,0,.2,1) forwards}
   @keyframes dropIn{from{opacity:0;transform:translateY(-8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-  .form-input{width:100%;padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;outline:none;transition:all .2s}
-  .dark .form-input{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85)}
-  .form-input:focus{border-color:#16b364;box-shadow:0 0 0 3px rgba(22,179,100,0.1)}
+  .modal-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+  .modal-box{animation:modalIn .3s cubic-bezier(.4,0,.2,1) forwards}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes modalIn{from{opacity:0;transform:scale(.92) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  .drop-zone{border:2px dashed #d1d5db;transition:all .2s}.drop-zone.dragover{border-color:#16b364;background:rgba(22,179,100,0.04)}
+  .dark .drop-zone{border-color:rgba(255,255,255,0.1)}.dark .drop-zone.dragover{border-color:#16b364;background:rgba(22,179,100,0.06)}
+  .tbl-row{transition:background .15s ease}.tbl-row:hover{background:rgba(22,179,100,0.03)}.dark .tbl-row:hover{background:rgba(22,179,100,0.04)}
+  .tbl-row td{border-bottom:1px solid #f3f4f6}.dark .tbl-row td{border-bottom-color:rgba(255,255,255,0.04)}
+  .tbl-row:last-child td{border-bottom:none}
+  .action-btn{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;transition:all .15s ease;font-size:12px}
+  .action-btn:hover{transform:translateY(-1px)}
+  .status-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .stat-card{position:relative;overflow:hidden}.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.08}
 </style>
 </head>
 
@@ -90,6 +194,15 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
 <?php if (isset($_SESSION['toast'])): ?>
   <div class="toast toast-<?= $_SESSION['toast']['type'] ?? 'success' ?>"><i class="fa-solid fa-<?= ($_SESSION['toast']['type'] ?? 'success') === 'success' ? 'check-circle' : 'exclamation-circle' ?> mr-2"></i><?= htmlspecialchars($_SESSION['toast']['message'] ?? '') ?></div>
   <?php unset($_SESSION['toast']); ?>
+<?php endif; ?>
+
+<?php if (!empty($csv_errors)): ?>
+  <?php foreach ($csv_errors as $i => $err): ?>
+    <div class="toast toast-error" style="top:<?php echo 20 + $i*60; ?>px"><i class="fa-solid fa-triangle-exclamation mr-2"></i><?= htmlspecialchars($err) ?></div>
+  <?php endforeach; ?>
+<?php endif; ?>
+<?php if ($csv_success > 0 && !empty($csv_errors)): ?>
+  <div class="toast toast-success" style="top:<?php echo 20 + count($csv_errors)*60; ?>px"><i class="fa-solid fa-check-circle mr-2"></i><?= $csv_success ?> categories imported (with some warnings)</div>
 <?php endif; ?>
 
 <!-- SIDEBAR -->
@@ -105,15 +218,15 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
   <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mb-2 transition-all duration-300">Main</p>
     <a href="../dashboard.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-grid-2 w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Dashboard</span></a>
-    <?php if ($user_role === 'Admin') { ?>
+    <?php if ($user_role === '1') { ?>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Manage</p>
     <a href="add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-folder-plus w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Category</span></a>
     <a href="view.php" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-layer-group w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Categories</span></a>
     <a href="../product/add.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-box-open w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Add Product</span></a>
-    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
+    <a href="../product/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-boxes-stacked w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">View Products</span></a>
     <p class="sidebar-text text-[10px] uppercase tracking-widest text-white/30 font-semibold px-3 mt-5 mb-2 transition-all duration-300">Sales</p>
-    <a href="view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
-    <a href="paymenets.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
+    <a href="../orders/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-cart-shopping w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">All Orders</span></a>
+    <a href="../payments/view.php" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-white"><i class="fa-solid fa-wallet w-5 text-center text-[13px]"></i><span class="sidebar-text transition-all duration-300">Payments</span></a>
     <?php } ?>
   </nav>
   <div class="px-3 pb-5"><div class="sidebar-text bg-white/5 rounded-xl p-4 transition-all duration-300"><p class="text-[11px] text-white/40 mb-1">Storage Used</p><div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full w-[38%] bg-gradient-to-r from-brand-400 to-brand-300 rounded-full"></div></div><p class="text-[11px] text-white/50 mt-1.5">38% of 10 GB</p></div></div>
@@ -122,8 +235,9 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
 <!-- MAIN -->
 <main id="main" class="ml-[260px] min-h-screen transition-all duration-300">
   <header class="topbar-border sticky top-0 z-40 bg-white/80 dark:bg-[#0d1410]/80 backdrop-blur-xl px-8 py-4 flex justify-between items-center">
-    <div><h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Categories</h1><p class="text-xs text-gray-400 mt-0.5"><?= $total_cats ?> categories</p></div>
+    <div><h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Categories</h1><p class="text-xs text-gray-400 mt-0.5">Manage all product categories</p></div>
     <div class="flex items-center gap-3">
+      <button onclick="openCsvModal()" class="px-5 py-2.5 bg-gray-900 dark:bg-white/10 hover:bg-gray-800 dark:hover:bg-white/15 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-file-csv mr-2 text-xs"></i>Import CSV</button>
       <a href="add.php" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-plus mr-2 text-xs"></i>Add New</a>
       <button onclick="toggleDark()" id="darkBtn" class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-600 dark:text-white/70"><i class="fa-solid fa-moon text-sm"></i></button>
       <div class="relative">
@@ -141,63 +255,287 @@ tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['
   </header>
 
   <div class="px-8 py-6">
-    <!-- Search -->
-    <form method="GET" class="fade-up mb-5">
-      <div class="flex gap-3 max-w-md">
-        <div class="flex-1 flex items-center bg-white dark:bg-[#131a16] rounded-xl px-4 py-2.5 gap-2 border border-gray-100 dark:border-white/5">
-          <i class="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
-          <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search categories..." class="bg-transparent outline-none text-sm text-gray-700 dark:text-white/80 w-full placeholder:text-gray-400">
-        </div>
-        <button type="submit" class="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Search</button>
-        <?php if ($search): ?><a href="view.php" class="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/70 rounded-xl text-sm font-semibold transition">Clear</a><?php endif; ?>
-      </div>
-    </form>
 
-    <!-- Grid -->
-    <?php if (mysqli_num_rows($cats_res) > 0): ?>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      <?php while ($cat = mysqli_fetch_assoc($cats_res)): ?>
-      <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden hover:shadow-md transition-shadow group">
-        <div class="h-36 bg-gray-100 dark:bg-white/[0.03] flex items-center justify-center overflow-hidden">
-          <?php if (!empty($cat['image'])): ?>
-            <img src="uploads/<?= htmlspecialchars($cat['image']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.parentElement.innerHTML='<i class=\'fa-solid fa-image text-3xl text-gray-200 dark:text-gray-700\'></i>'">
-          <?php else: ?>
-            <i class="fa-solid fa-image text-3xl text-gray-200 dark:text-gray-700"></i>
-          <?php endif; ?>
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="stat-card fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-5" style="animation-delay:.05s">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 dark:text-white/30 uppercase tracking-wider">Total Categories</p>
+            <p class="text-2xl font-extrabold text-gray-900 dark:text-white mt-1"><?= $total_cats ?></p>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center"><i class="fa-solid fa-layer-group text-brand-500"></i></div>
         </div>
-        <div class="p-4">
-          <div class="flex items-start justify-between mb-2">
-            <div>
-              <h3 class="text-sm font-bold text-gray-900 dark:text-white"><?= htmlspecialchars($cat['name'] ?? 'Unnamed') ?></h3>
-              <p class="text-[10px] text-gray-400 font-mono"><?= htmlspecialchars($cat['slug'] ?? 'no-slug') ?></p>
-            </div>
-            <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md <?= ($cat['status'] ?? '') === 'active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-500' ?>"><?= ucfirst($cat['status'] ?? 'inactive') ?></span>
+        <div class="mt-3 flex items-center gap-1.5 text-[11px] text-gray-400"><i class="fa-solid fa-database text-[9px]"></i>All registered categories</div>
+      </div>
+      <div class="stat-card fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-5" style="animation-delay:.1s">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 dark:text-white/30 uppercase tracking-wider">Active</p>
+            <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1"><?= $active_count ?></p>
           </div>
-          <p class="text-[11px] text-gray-400 mb-3"><i class="fa-solid fa-box text-[9px] mr-1"></i><?= (int)($cat['product_count'] ?? 0) ?> products</p>
-          <div class="flex gap-2">
-            <a href="edit.php?id=<?= (int)($cat['id'] ?? 0) ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-pen text-[9px] mr-1"></i>Edit</a>
-            <a href="view.php?toggle=<?= (int)($cat['id'] ?? 0) ?>" class="flex-1 text-center py-2 bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-white/60 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-toggle-on text-[9px] mr-1"></i>Toggle</a>
-            <a href="view.php?delete=<?= (int)($cat['id'] ?? 0) ?>" onclick="return confirm('Delete this category?')" class="py-2 px-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-trash text-[9px]"></i></a>
+          <div class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center"><i class="fa-solid fa-circle-check text-emerald-500"></i></div>
+        </div>
+        <div class="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-500"><i class="fa-solid fa-arrow-up text-[9px]"></i><?= $total_cats > 0 ? round(($active_count/$total_cats)*100) : 0 ?>% of total</div>
+      </div>
+      <div class="stat-card fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-5" style="animation-delay:.15s">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 dark:text-white/30 uppercase tracking-wider">Inactive</p>
+            <p class="text-2xl font-extrabold text-gray-400 dark:text-gray-500 mt-1"><?= $inactive_count ?></p>
           </div>
+          <div class="w-11 h-11 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center"><i class="fa-solid fa-circle-pause text-gray-400"></i></div>
+        </div>
+        <div class="mt-3 flex items-center gap-1.5 text-[11px] text-gray-400"><i class="fa-solid fa-minus text-[9px]"></i>Disabled categories</div>
+      </div>
+      <div class="stat-card fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 p-5" style="animation-delay:.2s">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 dark:text-white/30 uppercase tracking-wider">Total Products</p>
+            <p class="text-2xl font-extrabold text-gray-900 dark:text-white mt-1"><?= $total_products ?></p>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center"><i class="fa-solid fa-boxes-stacked text-blue-500"></i></div>
+        </div>
+        <div class="mt-3 flex items-center gap-1.5 text-[11px] text-blue-500"><i class="fa-solid fa-box text-[9px]"></i>Across all categories</div>
+      </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 mb-4" style="animation-delay:.25s">
+      <form method="GET" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4">
+        <div class="flex-1 flex items-center bg-gray-50 dark:bg-white/[0.03] rounded-xl px-4 py-2.5 gap-2 border border-gray-100 dark:border-white/5">
+          <i class="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
+          <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search by name or slug..." class="bg-transparent outline-none text-sm text-gray-700 dark:text-white/80 w-full placeholder:text-gray-400">
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-magnifying-glass mr-2 text-xs"></i>Search</button>
+          <?php if ($search): ?><a href="view.php" class="px-4 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 rounded-xl text-sm font-semibold transition">Clear</a><?php endif; ?>
+        </div>
+      </form>
+    </div>
+
+    <!-- Table -->
+    <?php if ($total_cats > 0): ?>
+    <div class="fade-up bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden" style="animation-delay:.3s">
+      <!-- Table Header Bar -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5">
+        <div class="flex items-center gap-3">
+          <h2 class="text-sm font-bold text-gray-900 dark:text-white">All Categories</h2>
+          <span class="text-[10px] font-bold bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 px-2.5 py-0.5 rounded-md"><?= $total_cats ?></span>
+        </div>
+        <div class="flex items-center gap-2 text-[11px] text-gray-400">
+          <i class="fa-solid fa-arrow-down-wide-short text-[10px]"></i>
+          <span>Newest first</span>
         </div>
       </div>
-      <?php endwhile; ?>
+
+      <!-- Table Wrapper -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-gray-50/80 dark:bg-white/[0.02]">
+              <th class="px-6 py-3 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider w-16">#</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider">Image</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider">Category</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider">Slug</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider text-center">Status</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider text-center">Products</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider">Created</th>
+              <th class="px-6 py-3 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php $counter = 0; while ($cat = mysqli_fetch_assoc($cats_res)): $counter++; ?>
+            <tr class="tbl-row">
+              <!-- # -->
+              <td class="px-6 py-4">
+                <span class="text-xs font-bold text-gray-300 dark:text-white/10"><?= str_pad($counter, 2, '0', STR_PAD_LEFT) ?></span>
+              </td>
+              <!-- Image -->
+              <td class="px-6 py-4">
+                <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/[0.03] overflow-hidden flex items-center justify-center shrink-0 border border-gray-100 dark:border-white/5">
+                  <?php if (!empty($cat['image'])): ?>
+                    <img src="uploads/<?= htmlspecialchars($cat['image']) ?>" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\'fa-solid fa-image text-gray-300 dark:text-gray-600 text-sm\'></i>'">
+                  <?php else: ?>
+                    <i class="fa-solid fa-image text-gray-300 dark:text-gray-600 text-sm"></i>
+                  <?php endif; ?>
+                </div>
+              </td>
+              <!-- Name -->
+              <td class="px-6 py-4">
+                <p class="text-sm font-bold text-gray-900 dark:text-white"><?= htmlspecialchars($cat['name'] ?? 'Unnamed') ?></p>
+                <p class="text-[10px] text-gray-400 mt-0.5">ID: <?= (int)($cat['id'] ?? 0) ?></p>
+              </td>
+              <!-- Slug -->
+              <td class="px-6 py-4">
+                <code class="text-xs font-mono text-gray-500 dark:text-white/30 bg-gray-50 dark:bg-white/[0.02] px-2.5 py-1 rounded-md"><?= htmlspecialchars($cat['slug'] ?? 'no-slug') ?></code>
+              </td>
+              <!-- Status -->
+              <td class="px-6 py-4 text-center">
+                <?php if (($cat['status'] ?? '') === 'active'): ?>
+                  <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/15 px-3 py-1 rounded-full">
+                    <span class="status-dot bg-emerald-500"></span>Active
+                  </span>
+                <?php else: ?>
+                  <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full">
+                    <span class="status-dot bg-gray-400"></span>Inactive
+                  </span>
+                <?php endif; ?>
+              </td>
+              <!-- Products -->
+              <td class="px-6 py-4 text-center">
+                <span class="text-sm font-bold text-gray-900 dark:text-white"><?= (int)($cat['product_count'] ?? 0) ?></span>
+              </td>
+              <!-- Created -->
+              <td class="px-6 py-4">
+                <p class="text-xs text-gray-500 dark:text-white/40"><?= date('M d, Y', strtotime($cat['created_at'] ?? 'now')) ?></p>
+                <p class="text-[10px] text-gray-400 dark:text-white/20"><?= date('h:i A', strtotime($cat['created_at'] ?? 'now')) ?></p>
+              </td>
+              <!-- Actions -->
+              <td class="px-6 py-4">
+                <div class="flex items-center justify-center gap-1.5">
+                  <a href="edit.php?id=<?= (int)($cat['id'] ?? 0) ?>" class="action-btn bg-blue-50 dark:bg-blue-900/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/20" title="Edit">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </a>
+                  <a href="view.php?toggle=<?= (int)($cat['id'] ?? 0) ?>" class="action-btn bg-amber-50 dark:bg-amber-900/10 text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/20" title="Toggle Status">
+                    <i class="fa-solid fa-toggle-on"></i>
+                  </a>
+                  <a href="view.php?delete=<?= (int)($cat['id'] ?? 0) ?>" onclick="return confirm('Are you sure you want to delete this category? This action cannot be undone.')" class="action-btn bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20" title="Delete">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            <?php endwhile; ?>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footer -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
+        <p class="text-[11px] text-gray-400">Showing <span class="font-semibold text-gray-600 dark:text-white/50"><?= $total_cats ?></span> categories</p>
+        <div class="flex items-center gap-1 text-[11px] text-gray-400">
+          <i class="fa-solid fa-circle-info text-[9px]"></i>
+          <span>Click edit to modify, toggle to change status</span>
+        </div>
+      </div>
     </div>
     <?php else: ?>
-    <div class="fade-up text-center py-20 bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5">
-      <i class="fa-solid fa-layer-group text-4xl text-gray-200 dark:text-gray-700 mb-4"></i>
-      <p class="text-sm text-gray-400 font-medium">No categories found</p>
-      <a href="add.php" class="inline-block mt-3 px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition">Add First Category</a>
+    <div class="fade-up text-center py-20 bg-white dark:bg-[#131a16] rounded-2xl border border-gray-100 dark:border-white/5" style="animation-delay:.3s">
+      <div class="w-20 h-20 rounded-3xl bg-gray-100 dark:bg-white/[0.03] flex items-center justify-center mx-auto mb-5">
+        <i class="fa-solid fa-layer-group text-3xl text-gray-200 dark:text-gray-700"></i>
+      </div>
+      <p class="text-base font-bold text-gray-900 dark:text-white mb-1">No categories found</p>
+      <p class="text-sm text-gray-400 mb-5"><?= $search ? 'Try adjusting your search query' : 'Get started by adding your first category' ?></p>
+      <?php if ($search): ?>
+        <a href="view.php" class="inline-block px-6 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 rounded-xl text-sm font-semibold transition mr-3">Clear Search</a>
+      <?php endif; ?>
+      <a href="add.php" class="inline-block px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition"><i class="fa-solid fa-plus mr-2 text-xs"></i>Add Category</a>
     </div>
     <?php endif; ?>
   </div>
 </main>
+
+<!-- CSV MODAL -->
+<div id="csvModal" class="hidden">
+  <div class="modal-overlay" onclick="closeCsvModal(event)">
+    <div class="modal-box bg-white dark:bg-[#131a16] rounded-3xl shadow-2xl border border-gray-100 dark:border-white/5 w-full max-w-lg mx-4 overflow-hidden" onclick="event.stopPropagation()">
+      <div class="px-7 pt-7 pb-0 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-gray-900 dark:text-white">Import Categories</h2>
+          <p class="text-xs text-gray-400 mt-1">Upload a CSV file to bulk import categories</p>
+        </div>
+        <button onclick="closeCsvModal()" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition text-gray-400"><i class="fa-solid fa-xmark text-sm"></i></button>
+      </div>
+      <form method="POST" enctype="multipart/form-data" id="csvForm" class="p-7">
+        <div id="dropZone" class="drop-zone rounded-2xl p-8 text-center cursor-pointer mb-5" onclick="document.getElementById('csvFileInput').click()">
+          <input type="file" name="csv_file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleFileSelect(this)">
+          <div id="dropContent">
+            <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center mx-auto mb-4">
+              <i class="fa-solid fa-cloud-arrow-up text-xl text-brand-500"></i>
+            </div>
+            <p class="text-sm font-semibold text-gray-700 dark:text-white/80">Drop your CSV file here</p>
+            <p class="text-xs text-gray-400 mt-1">or <span class="text-brand-500 font-semibold underline underline-offset-2">browse files</span></p>
+            <p class="text-[10px] text-gray-400 mt-3">Max 5MB · .csv only</p>
+          </div>
+          <div id="filePreview" class="hidden">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto mb-4">
+              <i class="fa-solid fa-file-csv text-xl text-emerald-500"></i>
+            </div>
+            <p id="fileName" class="text-sm font-semibold text-gray-700 dark:text-white/80"></p>
+            <p id="fileSize" class="text-xs text-gray-400 mt-1"></p>
+            <button type="button" onclick="event.stopPropagation(); clearFile()" class="text-[11px] text-red-500 font-semibold mt-2 hover:underline">Remove file</button>
+          </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 mb-5">
+          <p class="text-[11px] font-bold text-gray-500 dark:text-white/40 uppercase tracking-wider mb-2"><i class="fa-solid fa-circle-info mr-1"></i>CSV Format</p>
+          <div class="bg-white dark:bg-[#0d1410] rounded-lg border border-gray-200 dark:border-white/5 p-3 font-mono text-[11px] text-gray-600 dark:text-white/50 leading-relaxed">
+            <span class="text-brand-500">name</span>,<span class="text-brand-500">slug</span>,<span class="text-gray-400">status</span><br>
+            Electronics,electronics,active<br>
+            Clothing,clothing,inactive<br>
+            Books,books,active
+          </div>
+          <p class="text-[10px] text-gray-400 mt-2"><span class="font-semibold text-gray-500">Required:</span> name, slug &nbsp;·&nbsp; <span class="font-semibold text-gray-500">Optional:</span> status (default: active)</p>
+        </div>
+        <div class="flex gap-3">
+          <button type="button" onclick="closeCsvModal()" class="flex-1 py-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 rounded-xl text-sm font-semibold transition">Cancel</button>
+          <button type="submit" name="csv_upload" value="1" id="csvSubmitBtn" class="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <i class="fa-solid fa-file-import text-xs"></i>Import CSV
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script>
 function toggleSidebar(){const s=document.getElementById('sidebar'),m=document.getElementById('main'),c=s.classList.toggle('sidebar-collapsed');s.style.width=c?'78px':'260px';m.style.marginLeft=c?'78px':'260px'}
 function toggleDark(){const h=document.documentElement,b=document.body,btn=document.getElementById('darkBtn'),d=b.classList.toggle('dark');h.classList.toggle('dark',d);btn.innerHTML=d?'<i class="fa-solid fa-sun text-sm"></i>':'<i class="fa-solid fa-moon text-sm"></i>'}
 function toggleMenu(){document.getElementById('menu').classList.toggle('hidden')}
 document.addEventListener('click',function(e){const m=document.getElementById('menu');if(!e.target.closest('.relative')&&!m.classList.contains('hidden'))m.classList.add('hidden')});
+
+function openCsvModal(){document.getElementById('csvModal').classList.remove('hidden');document.body.style.overflow='hidden'}
+function closeCsvModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('csvModal').classList.add('hidden');document.body.style.overflow='';clearFile()}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCsvModal()});
+
+function handleFileSelect(input){
+  const file=input.files[0];if(!file)return;
+  if(!file.name.toLowerCase().endsWith('.csv')){showInlineMsg('Only .csv files are allowed','error');input.value='';return}
+  if(file.size>5*1024*1024){showInlineMsg('File must be under 5MB','error');input.value='';return}
+  document.getElementById('dropContent').classList.add('hidden');
+  document.getElementById('filePreview').classList.remove('hidden');
+  document.getElementById('fileName').textContent=file.name;
+  document.getElementById('fileSize').textContent=formatSize(file.size);
+  document.getElementById('csvSubmitBtn').disabled=false;
+  document.getElementById('dropZone').classList.add('border-brand-300','dark:border-brand-600');
+  clearInlineMsg();
+}
+function clearFile(){
+  document.getElementById('csvFileInput').value='';
+  document.getElementById('dropContent').classList.remove('hidden');
+  document.getElementById('filePreview').classList.add('hidden');
+  document.getElementById('csvSubmitBtn').disabled=true;
+  document.getElementById('dropZone').classList.remove('border-brand-300','dark:border-brand-600');
+}
+function formatSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'}
+
+const dz=document.getElementById('dropZone');
+['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();dz.classList.add('dragover')}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();dz.classList.remove('dragover')}));
+dz.addEventListener('drop',function(e){
+  const file=e.dataTransfer.files[0];if(file){
+    const dt=new DataTransfer();dt.items.add(file);
+    document.getElementById('csvFileInput').files=dt.files;
+    handleFileSelect(document.getElementById('csvFileInput'));
+  }
+});
+
+function showInlineMsg(msg,type){
+  let el=document.getElementById('inlineMsg');if(!el){el=document.createElement('div');el.id='inlineMsg';el.className='text-[11px] font-semibold px-3 py-2 rounded-lg mb-4';dz.after(el)}
+  el.className='text-[11px] font-semibold px-3 py-2 rounded-lg mb-4 '+(type==='error'?'bg-red-50 text-red-500 dark:bg-red-900/20':'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20');
+  el.textContent=msg;
+}
+function clearInlineMsg(){const el=document.getElementById('inlineMsg');if(el)el.remove()}
 </script>
 </body>
 </html>

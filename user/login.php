@@ -4,7 +4,7 @@ include("../backend/config/db.php");
 
 // Already logged in?
 if (isset($_SESSION['user_id'])) {
-    if ($_SESSION['user_role'] === 'admin') {
+    if ($_SESSION['user_role'] === '1') {
         header("Location: ../backend/dashboard.php");
     } else {
         header("Location: ../frontend/index.php");

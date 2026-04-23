@@ -2,7 +2,6 @@
 session_start();
 include("../backend/config/db.php");
 
-/* ================= USER DATA (IF LOGGED IN) ================= */
  $user = null;
 if (isset($_SESSION['user_id'])) {
     $uid = $_SESSION['user_id'];
@@ -10,48 +9,26 @@ if (isset($_SESSION['user_id'])) {
     $user = mysqli_fetch_assoc($u_res);
 }
 
-/* ================= CATEGORIES ================= */
  $cat_query = "SELECT * FROM categories";
  $cat_result = mysqli_query($conn, $cat_query);
 
-/* ================= PRODUCTS FILTER (WITH REVIEWS) ================= */
 if (isset($_GET['cat_id']) && $_GET['cat_id'] !== "") {
     $cat_id = intval($_GET['cat_id']);
-    $product_query = "
-    SELECT p.*, c.category_name,
-    IFNULL(AVG(r.rating),0) as avg_rating,
-    COUNT(r.id) as total_reviews
-    FROM products p 
-    JOIN categories c ON p.category_id = c.id
-    LEFT JOIN reviews r ON p.id = r.product_id
-    WHERE p.category_id = $cat_id
-    GROUP BY p.id
-    ORDER BY p.id DESC";
+    $product_query = "SELECT p.*, c.category_name, IFNULL(AVG(r.rating),0) as avg_rating, COUNT(r.id) as total_reviews FROM products p JOIN categories c ON p.category_id = c.id LEFT JOIN reviews r ON p.id = r.product_id WHERE p.category_id = $cat_id GROUP BY p.id ORDER BY p.id DESC";
     $active_cat = $cat_id;
 } else {
-    $product_query = "
-    SELECT p.*, c.category_name,
-    IFNULL(AVG(r.rating),0) as avg_rating,
-    COUNT(r.id) as total_reviews
-    FROM products p 
-    JOIN categories c ON p.category_id = c.id
-    LEFT JOIN reviews r ON p.id = r.product_id
-    GROUP BY p.id
-    ORDER BY p.id DESC";
+    $product_query = "SELECT p.*, c.category_name, IFNULL(AVG(r.rating),0) as avg_rating, COUNT(r.id) as total_reviews FROM products p JOIN categories c ON p.category_id = c.id LEFT JOIN reviews r ON p.id = r.product_id GROUP BY p.id ORDER BY p.id DESC";
     $active_cat = 0;
 }
-
  $product_result = mysqli_query($conn, $product_query);
  $product_count = mysqli_num_rows($product_result);
 
-/* ================= ACTIVE CATEGORY ================= */
  $active_cat_name = 'All Products';
 if ($active_cat > 0) {
     $ac = mysqli_fetch_assoc(mysqli_query($conn, "SELECT category_name FROM categories WHERE id = $active_cat"));
     if ($ac) $active_cat_name = $ac['category_name'];
 }
 
-/* ================= CART COUNT (DB + SESSION) ================= */
 if (isset($_SESSION['user_id'])) {
     $uid = $_SESSION['user_id'];
     $res = mysqli_query($conn, "SELECT SUM(quantity) as total FROM cart WHERE user_id = $uid");
@@ -61,7 +38,6 @@ if (isset($_SESSION['user_id'])) {
     $count = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0;
 }
 
-/* ================= CONTACT FORM HANDLER ================= */
  $formMsg = '';
  $formType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
@@ -69,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
     $c_email = trim(mysqli_real_escape_string($conn, $_POST['contact_email'] ?? ''));
     $c_subject = trim(mysqli_real_escape_string($conn, $_POST['contact_subject'] ?? ''));
     $c_message = trim(mysqli_real_escape_string($conn, $_POST['contact_message'] ?? ''));
-
     if (empty($c_name) || empty($c_email) || empty($c_subject) || empty($c_message)) {
         $formMsg = 'Please fill in all fields.';
         $formType = 'error';
@@ -82,897 +57,609 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
     } else {
         $insert = mysqli_query($conn, "INSERT INTO contact_messages (name, email, subject, message, created_at) VALUES ('$c_name', '$c_email', '$c_subject', '$c_message', NOW())");
         if ($insert) {
-            $formMsg = 'Message sent successfully! We\'ll get back to you soon.';
+            $formMsg = 'Message sent successfully!';
             $formType = 'success';
             $c_name = $c_email = $c_subject = $c_message = '';
         } else {
-            $formMsg = 'Something went wrong. Please try again.';
+            $formMsg = 'Something went wrong.';
             $formType = 'error';
         }
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AHMUS Shop — Premium Product</title>
-
+<title>AHMUS Shop — Premium Products</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
 <script>
-tailwind.config = {
-  theme: {
-    extend: {
-      fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
-      colors: {
-        gold: {
-          50:'#fffbeb',100:'#fef3c7',200:'#fde68a',300:'#fcd34d',
-          400:'#fbbf24',500:'#f59e0b',600:'#d97706',700:'#b45309',
-          800:'#92400e',900:'#78350f'
-        },
-        surface: {
-          900:'#0a0a0f',800:'#101018',700:'#16161f',600:'#1c1c28',
-          500:'#222230',400:'#2a2a3a',300:'#35354a'
-        }
-      }
-    }
-  }
-}
+tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}
 </script>
-
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Plus Jakarta Sans',sans-serif; background:#0a0a0f; color:#fff; }
+/* ════════ BASE ════════ */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;overflow-x:hidden;color:#fff;min-height:100vh}
+.glass-bg{
+  position:fixed;inset:0;z-index:-1;
+  background:linear-gradient(135deg,#0f0c29 0%,#1a1a3e 25%,#24243e 50%,#0f0c29 100%);
+}
+/* Animated floating blobs */
+.blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.45;pointer-events:none;z-index:-1}
+.blob-1{width:500px;height:500px;background:radial-gradient(circle,#f59e0b,transparent 70%);top:-10%;left:-5%;animation:blobFloat1 18s ease-in-out infinite}
+.blob-2{width:450px;height:450px;background:radial-gradient(circle,#8b5cf6,transparent 70%);top:30%;right:-10%;animation:blobFloat2 22s ease-in-out infinite}
+.blob-3{width:400px;height:400px;background:radial-gradient(circle,#06b6d4,transparent 70%);bottom:-5%;left:20%;animation:blobFloat3 20s ease-in-out infinite}
+.blob-4{width:350px;height:350px;background:radial-gradient(circle,#ec4899,transparent 70%);top:60%;left:-8%;animation:blobFloat4 24s ease-in-out infinite}
+.blob-5{width:300px;height:300px;background:radial-gradient(circle,#22c55e,transparent 70%);top:10%;right:25%;animation:blobFloat5 16s ease-in-out infinite}
+@keyframes blobFloat1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(60px,40px) scale(1.1)}66%{transform:translate(-30px,70px) scale(.95)}}
+@keyframes blobFloat2{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(-50px,-30px) scale(1.08)}66%{transform:translate(40px,50px) scale(.92)}}
+@keyframes blobFloat3{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-60px) scale(1.05)}66%{transform:translate(-60px,20px) scale(.97)}}
+@keyframes blobFloat4{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(70px,30px) scale(.93)}66%{transform:translate(-40px,-40px) scale(1.1)}}
+@keyframes blobFloat5{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30px,50px) scale(1.12)}}
 
-  ::-webkit-scrollbar { width:8px; }
-  ::-webkit-scrollbar-track { background:#0a0a0f; }
-  ::-webkit-scrollbar-thumb { background:#2a2a3a; border-radius:99px; }
-  ::-webkit-scrollbar-thumb:hover { background:#3a3a4a; }
+/* ════════ GLASS CLASSES ════════ */
+.glass{
+  background:rgba(255,255,255,.06);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 8px 32px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.glass-strong{
+  background:rgba(255,255,255,.1);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 8px 32px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.1);
+}
+.glass-light{
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.07);
+  box-shadow:0 4px 16px rgba(0,0,0,.1);
+}
+.glass-input{
+  background:rgba(255,255,255,.06);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.12);
+  color:#fff;font-family:'Inter',sans-serif;
+  transition:all .25s;
+}
+.glass-input::placeholder{color:rgba(255,255,255,.35)}
+.glass-input:focus{
+  outline:none;
+  border-color:rgba(245,158,11,.5);
+  box-shadow:0 0 0 3px rgba(245,158,11,.15),inset 0 1px 0 rgba(255,255,255,.05);
+  background:rgba(255,255,255,.09);
+}
+.glass-input.err{border-color:rgba(239,68,68,.6);box-shadow:0 0 0 3px rgba(239,68,68,.12)}
+.glass-btn{
+  background:linear-gradient(135deg,rgba(245,158,11,.85),rgba(234,88,12,.85));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.15);
+  color:#fff;font-family:'Inter',sans-serif;
+  box-shadow:0 4px 20px rgba(245,158,11,.25);
+  transition:all .3s;
+}
+.glass-btn:hover{
+  box-shadow:0 6px 28px rgba(245,158,11,.4);
+  transform:translateY(-1px);
+}
+.glass-btn-dark{
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.15);
+  color:#fff;font-family:'Inter',sans-serif;
+  transition:all .25s;
+}
+.glass-btn-dark:hover{
+  background:rgba(255,255,255,.14);
+  border-color:rgba(255,255,255,.25);
+}
 
-  .hero-orb {
-    position:absolute;border-radius:50%;filter:blur(100px);opacity:0.4;
-    animation:orbFloat 10s ease-in-out infinite alternate;
-  }
-  .hero-orb-1 {
-    width:600px;height:600px;top:-200px;right:-100px;
-    background:radial-gradient(circle,rgba(251,191,36,0.25),transparent 70%);
-  }
-  .hero-orb-2 {
-    width:400px;height:400px;bottom:-100px;left:-50px;
-    background:radial-gradient(circle,rgba(245,158,11,0.15),transparent 70%);
-    animation-delay:-4s;animation-duration:14s;
-  }
-  @keyframes orbFloat {
-    0% { transform:translate(0,0) scale(1); }
-    50% { transform:translate(30px,-30px) scale(1.08); }
-    100% { transform:translate(-20px,20px) scale(0.95); }
-  }
+/* ════════ ANIMATIONS ════════ */
+.rv{opacity:0;transform:translateY(30px);transition:all .8s cubic-bezier(.22,1,.36,1);will-change:opacity,transform}
+.rv.on{opacity:1;transform:none}
+.d1{transition-delay:.05s}.d2{transition-delay:.1s}.d3{transition-delay:.15s}.d4{transition-delay:.2s}.d5{transition-delay:.25s}.d6{transition-delay:.3s}
 
-  .nav-blur {
-    background:rgba(10,10,15,0.75);
-    backdrop-filter:blur(20px);
-    -webkit-backdrop-filter:blur(20px);
-    border-bottom:1px solid rgba(255,255,255,0.04);
-  }
+/* ════════ NAV ════════ */
+.nav-glass{
+  background:rgba(15,12,41,.5);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  transition:all .3s;
+}
+.nav-glass.scrolled{
+  background:rgba(15,12,41,.75);
+  border-bottom-color:rgba(255,255,255,.1);
+  box-shadow:0 4px 30px rgba(0,0,0,.3);
+}
 
-  .profile-dropdown {
-    position:absolute;top:calc(100% + 8px);right:0;
-    width:260px;background:#16161f;
-    border:1px solid rgba(255,255,255,0.08);
-    border-radius:16px;padding:0;
-    opacity:0;visibility:hidden;
-    transform:translateY(-8px) scale(0.97);
-    transition:all 0.25s cubic-bezier(.4,0,.2,1);
-    box-shadow:0 25px 60px -12px rgba(0,0,0,0.7);
-    z-index:999;overflow:hidden;
-  }
-  .profile-dropdown.open {
-    opacity:1;visibility:visible;
-    transform:translateY(0) scale(1);
-  }
-  .profile-dropdown::before {
-    content:'';position:absolute;top:-6px;right:16px;
-    width:12px;height:12px;background:#16161f;
-    border-left:1px solid rgba(255,255,255,0.08);
-    border-top:1px solid rgba(255,255,255,0.08);
-    transform:rotate(45deg);
-  }
-  .dropdown-item {
-    display:flex;align-items:center;gap:10px;
-    padding:10px 16px;font-size:0.82rem;font-weight:500;
-    color:rgba(255,255,255,0.55);text-decoration:none;
-    transition:all 0.15s ease;cursor:pointer;
-    border:none;background:none;width:100%;text-align:left;
-  }
-  .dropdown-item:hover { background:rgba(255,255,255,0.04); color:#fff; }
-  .dropdown-item i { width:18px;text-align:center;font-size:0.78rem; }
-  .dropdown-divider { height:1px;background:rgba(255,255,255,0.06);margin:4px 0; }
-  .dropdown-item.danger:hover { background:rgba(239,68,68,0.08); color:#f87171; }
+/* ════════ PRODUCT CARD ════════ */
+.pcard{
+  border-radius:20px;overflow:hidden;
+  background:rgba(255,255,255,.05);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 8px 32px rgba(0,0,0,.15);
+  transition:all .35s cubic-bezier(.22,1,.36,1);
+}
+.pcard:hover{
+  transform:translateY(-6px);
+  border-color:rgba(255,255,255,.18);
+  box-shadow:0 20px 50px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.1);
+  background:rgba(255,255,255,.08);
+}
+.pcard-img{position:relative;overflow:hidden;background:rgba(255,255,255,.03)}
+.pcard-img img{width:100%;height:240px;object-fit:cover;transition:transform .5s ease}
+.pcard:hover .pcard-img img{transform:scale(1.06)}
+.pcard-badge{
+  position:absolute;top:12px;left:12px;
+  background:linear-gradient(135deg,rgba(245,158,11,.9),rgba(234,88,12,.9));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  color:#fff;font-size:.65rem;font-weight:700;padding:4px 12px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.2);
+}
+.btn-cart{
+  display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;
+  border-radius:14px;font-size:.8rem;font-weight:600;cursor:pointer;
+  background:rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.12);color:#fff;
+  transition:all .25s;font-family:'Inter',sans-serif;
+}
+.btn-cart:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.25)}
+.btn-cart.added{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4);color:#4ade80;pointer-events:none}
+.btn-cart .spin{animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn-wish{
+  width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);
+  cursor:pointer;transition:all .25s;font-size:.9rem;flex-shrink:0;
+}
+.btn-wish:hover{border-color:rgba(236,72,153,.5);color:#f472b6;background:rgba(236,72,153,.1)}
 
-  .cat-pill {
-    padding:8px 20px;border-radius:99px;font-size:0.8rem;font-weight:600;
-    border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);
-    text-decoration:none;white-space:nowrap;transition:all 0.25s ease;
-    background:transparent;cursor:pointer;display:inline-flex;align-items:center;
-  }
-  .cat-pill:hover {
-    border-color:rgba(251,191,36,0.3);color:#fbbf24;
-    background:rgba(251,191,36,0.06);
-  }
-  .cat-pill.active {
-    background:linear-gradient(135deg,#fbbf24,#f59e0b);
-    color:#0a0a0f;border-color:transparent;
-    box-shadow:0 4px 16px -4px rgba(251,191,36,0.4);
-  }
+/* ════════ CATEGORY PILL ════════ */
+.cat-pill{
+  display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:99px;
+  background:rgba(255,255,255,.05);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.08);font-size:.8rem;font-weight:500;
+  color:rgba(255,255,255,.55);cursor:pointer;transition:all .25s;white-space:nowrap;text-decoration:none;
+}
+.cat-pill:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.15)}
+.cat-pill.active{
+  background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(234,88,12,.2));
+  border-color:rgba(245,158,11,.4);color:#fbbf24;
+  box-shadow:0 4px 20px rgba(245,158,11,.15);
+}
+.cat-pill.active i{color:#fbbf24}
 
-  .prod-card {
-    background:#101018;border-radius:20px;overflow:hidden;
-    border:1px solid rgba(255,255,255,0.04);
-    transition:all 0.4s cubic-bezier(.4,0,.2,1);
-    position:relative;
-  }
-  .prod-card::before {
-    content:'';position:absolute;inset:0;border-radius:20px;
-    background:linear-gradient(135deg,rgba(251,191,36,0.08),transparent 60%);
-    opacity:0;transition:opacity 0.4s ease;pointer-events:none;z-index:1;
-  }
-  .prod-card:hover {
-    transform:translateY(-8px);
-    border-color:rgba(251,191,36,0.15);
-    box-shadow:0 20px 50px -15px rgba(0,0,0,0.6), 0 0 40px -10px rgba(251,191,36,0.08);
-  }
-  .prod-card:hover::before { opacity:1; }
+/* ════════ SKELETON ════════ */
+.skel{
+  background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);
+  background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-  .prod-img-wrap {
-    position:relative;overflow:hidden;background:#16161f;cursor:pointer;
-  }
-  .prod-img-wrap img {
-    width:100%;height:260px;object-fit:cover;
-    transition:transform 0.6s cubic-bezier(.4,0,.2,1);
-  }
-  .prod-card:hover .prod-img-wrap img { transform:scale(1.08); }
-  .prod-img-wrap::after {
-    content:'';position:absolute;bottom:0;left:0;right:0;height:40%;
-    background:linear-gradient(to top,#101018,transparent);pointer-events:none;
-  }
+/* ════════ FAQ ════════ */
+.faq-item{
+  border-radius:16px;overflow:hidden;
+  background:rgba(255,255,255,.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.07);transition:all .3s;
+}
+.faq-item.open{border-color:rgba(245,158,11,.3);background:rgba(255,255,255,.07)}
+.faq-btn{
+  display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 20px;
+  font-size:.88rem;font-weight:600;color:rgba(255,255,255,.85);background:none;
+  border:none;cursor:pointer;text-align:left;font-family:'Inter',sans-serif;gap:12px;
+}
+.faq-btn:hover{color:#fff}
+.faq-btn i{font-size:.6rem;color:rgba(255,255,255,.3);transition:transform .3s;flex-shrink:0}
+.faq-item.open .faq-btn i{transform:rotate(180deg);color:#fbbf24}
+.faq-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.faq-inner{padding:0 20px 18px;font-size:.84rem;color:rgba(255,255,255,.5);line-height:1.7}
 
-  .cat-badge {
-    position:absolute;top:12px;left:12px;z-index:2;
-    background:rgba(10,10,15,0.7);backdrop-filter:blur(8px);
-    padding:4px 10px;border-radius:8px;font-size:0.65rem;font-weight:600;
-    color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.06);
-  }
+/* ════════ REVIEW MODAL ════════ */
+.rev-overlay{
+  position:fixed;inset:0;z-index:9000;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;visibility:hidden;transition:all .3s;
+}
+.rev-overlay.open{opacity:1;visibility:visible}
+.rev-modal{
+  width:100%;max-width:560px;max-height:85vh;border-radius:24px;overflow:hidden;
+  background:rgba(30,27,60,.85);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 25px 80px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+  transform:translateY(24px) scale(.97);
+  transition:all .35s cubic-bezier(.22,1,.36,1);
+  display:flex;flex-direction:column;
+}
+.rev-overlay.open .rev-modal{transform:translateY(0) scale(1)}
+.rev-head{
+  padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;gap:14px;flex-shrink:0;
+}
+.rev-head img{width:52px;height:52px;border-radius:14px;object-fit:cover;border:1px solid rgba(255,255,255,.1)}
+.rev-close{
+  margin-left:auto;width:36px;height:36px;border-radius:12px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;font-size:.8rem;flex-shrink:0;
+}
+.rev-close:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#f87171}
+.rev-body{flex:1;overflow-y:auto}
+.rev-body::-webkit-scrollbar{width:4px}
+.rev-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px}
+.star-sel{display:flex;gap:5px;margin-bottom:10px}
+.star-sel .sb{background:none;border:none;cursor:pointer;font-size:1.5rem;color:rgba(255,255,255,.12);transition:all .15s;line-height:1;padding:0}
+.star-sel .sb:hover{transform:scale(1.15)}
+.star-sel .sb.hov{color:rgba(245,158,11,.6)}
+.star-sel .sb.sel{color:#fbbf24}
+.star-lbl{font-size:.72rem;font-weight:600;color:rgba(255,255,255,.25);margin-left:8px;transition:color .2s}
+.star-lbl.on{color:#fbbf24}
+.rev-ta{
+  width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;padding:12px 14px;font-size:.84rem;color:#fff;
+  font-family:'Inter',sans-serif;resize:vertical;min-height:80px;max-height:140px;
+  line-height:1.6;outline:none;transition:border-color .2s;
+}
+.rev-ta::placeholder{color:rgba(255,255,255,.25)}
+.rev-ta:focus{border-color:rgba(245,158,11,.4);box-shadow:0 0 0 3px rgba(245,158,11,.1)}
+.btn-sub-rev{
+  display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:10px 22px;
+  border-radius:12px;font-size:.82rem;font-weight:600;
+  background:linear-gradient(135deg,rgba(245,158,11,.8),rgba(234,88,12,.8));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.15);color:#fff;cursor:pointer;
+  transition:all .2s;font-family:'Inter',sans-serif;
+  box-shadow:0 4px 16px rgba(245,158,11,.2);
+}
+.btn-sub-rev:hover{box-shadow:0 6px 24px rgba(245,158,11,.35);transform:translateY(-1px)}
+.btn-sub-rev:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.rev-item{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.04)}
+.rev-item:last-child{border-bottom:none}
+.rev-av{
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.7rem;background:rgba(245,158,11,.15);color:#fbbf24;
+  flex-shrink:0;overflow:hidden;border:1px solid rgba(245,158,11,.2);
+}
+.rev-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.rev-empty{padding:40px 20px;text-align:center}
+.rev-empty i{font-size:2rem;color:rgba(255,255,255,.1);display:block;margin-bottom:10px}
+.rev-empty p{font-size:.88rem;color:rgba(255,255,255,.3)}
+.rev-loading{padding:40px 20px;text-align:center}
+.spinner{width:28px;height:28px;border:3px solid rgba(255,255,255,.08);border-top-color:#fbbf24;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
 
-  .btn-cart {
-    background:linear-gradient(135deg,#fbbf24,#f59e0b);
-    color:#0a0a0f;font-weight:700;border:none;border-radius:12px;
-    transition:all 0.25s cubic-bezier(.4,0,.2,1);
-    position:relative;overflow:hidden;
-  }
-  .btn-cart::before {
-    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);
-    transition:left 0.5s ease;
-  }
-  .btn-cart:hover::before { left:100%; }
-  .btn-cart:hover {
-    box-shadow:0 6px 24px -4px rgba(251,191,36,0.5);
-    transform:translateY(-1px);
-  }
+/* ════════ TOAST ════════ */
+.toast-box{position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none}
+.toast{
+  display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:14px;
+  font-size:.84rem;font-weight:500;pointer-events:auto;
+  transform:translateX(120%);opacity:0;transition:all .35s cubic-bezier(.22,1,.36,1);
+  max-width:360px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+}
+.toast.show{transform:translateX(0);opacity:1}
+.toast.exit{transform:translateX(120%);opacity:0}
+.toast-success{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.toast-error{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.toast-info{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.25)}
 
-  .btn-view {
-    background:transparent;border:1px solid rgba(255,255,255,0.1);
-    color:rgba(255,255,255,0.6);border-radius:12px;font-weight:600;
-    transition:all 0.25s ease;
-  }
-  .btn-view:hover {
-    background:rgba(255,255,255,0.06);
-    border-color:rgba(255,255,255,0.2);
-    color:#fff;
-  }
+/* ════════ USER DROPDOWN ════════ */
+.ud{
+  position:absolute;top:calc(100% + 10px);right:0;width:260px;
+  background:rgba(30,27,60,.9);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  border:1px solid rgba(255,255,255,.1);border-radius:18px;
+  box-shadow:0 16px 50px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
+  opacity:0;visibility:hidden;transform:translateY(-8px);
+  transition:all .25s cubic-bezier(.22,1,.36,1);z-index:999;overflow:hidden;
+}
+.ud.open{opacity:1;visibility:visible;transform:translateY(0)}
+.ud-item{
+  display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:.84rem;
+  color:rgba(255,255,255,.6);text-decoration:none;transition:all .15s;
+  cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:'Inter',sans-serif;
+}
+.ud-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.ud-item i{width:18px;text-align:center;color:rgba(255,255,255,.25);font-size:.8rem}
+.ud-sep{height:1px;background:rgba(255,255,255,.06);margin:4px 0}
+.ud-item.danger{color:#f87171}
+.ud-item.danger:hover{background:rgba(239,68,68,.08)}
 
-  .fade-up {
-    opacity:0;transform:translateY(20px);
-    animation:fadeUp 0.6s cubic-bezier(.4,0,.2,1) forwards;
-  }
-  @keyframes fadeUp { to { opacity:1;transform:translateY(0); } }
+/* ════════ INFO BOX ════════ */
+.info-box{
+  border-radius:18px;padding:18px;transition:all .3s;
+  background:rgba(255,255,255,.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.07);
+}
+.info-box:hover{
+  background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);
+  box-shadow:0 8px 30px rgba(0,0,0,.2);transform:translateY(-2px);
+}
 
-  .text-shimmer {
-    background:linear-gradient(90deg,#fbbf24,#fde68a,#fbbf24);
-    background-size:200% auto;
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    background-clip:text;
-    animation:shimmer 3s linear infinite;
-  }
-  @keyframes shimmer { to { background-position:200% center; } }
+/* ════════ ONLINE WIDGET ════════ */
+.online-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.4)}50%{box-shadow:0 0 0 6px rgba(74,222,128,0)}}
 
-  .hero-img { animation:heroFloat 4s ease-in-out infinite; }
-  @keyframes heroFloat {
-    0%,100% { transform:translateY(0); }
-    50% { transform:translateY(-15px); }
-  }
+/* ════════ MOBILE NAV ════════ */
+.mob-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:rgba(15,12,41,.7);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid rgba(255,255,255,.06);
+  padding:6px 0;padding-bottom:max(6px,env(safe-area-inset-bottom));
+}
+@media(max-width:1023px){.desk-nav{display:none!important}.mob-nav{display:flex;justify-content:space-around}.desk-stats{display:none!important}}
+.mob-tab{
+  display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;
+  font-size:.6rem;color:rgba(255,255,255,.35);text-decoration:none;font-weight:500;
+  transition:color .2s;border:none;background:none;cursor:pointer;position:relative;
+}
+.mob-tab:hover,.mob-tab.active{color:#fbbf24}
+.mob-badge{
+  position:absolute;top:1px;right:6px;min-width:16px;height:16px;border-radius:99px;
+  background:linear-gradient(135deg,#f59e0b,#ea580c);color:#fff;font-size:.55rem;
+  font-bold;display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,.15);
+}
 
-  .footer-link {
-    color:rgba(255,255,255,0.35);font-size:0.85rem;
-    text-decoration:none;transition:color 0.2s;display:block;padding:4px 0;
-  }
-  .footer-link:hover { color:#fbbf24; }
+/* ════════ BADGE POP ════════ */
+@keyframes badgePop{0%{transform:scale(1)}50%{transform:scale(1.4)}100%{transform:scale(1)}}
+.badge-pop{animation:badgePop .3s ease}
 
-  .cart-pulse { animation:cartPop 0.3s cubic-bezier(.4,0,.2,1); }
-  @keyframes cartPop {
-    0% { transform:scale(1); }
-    50% { transform:scale(1.4); }
-    100% { transform:scale(1); }
-  }
+/* ════════ GLOW TEXT ════════ */
+.glow-text{
+  background:linear-gradient(135deg,#fbbf24,#f97316,#ef4444,#f472b6,#a78bfa,#38bdf8,#fbbf24);
+  background-size:300% 300%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:gradientShift 6s ease infinite;
+}
+@keyframes gradientShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 
-  .empty-icon { animation:emptyBounce 2s ease-in-out infinite; }
-  @keyframes emptyBounce {
-    0%,100% { transform:translateY(0); }
-    50% { transform:translateY(-8px); }
-  }
+/* ════════ SECTION LABEL ════════ */
+.sec-label{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:99px;
+  background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);
+  font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fbbf24;
+}
 
-  .cat-scroll::-webkit-scrollbar { display:none; }
-  .cat-scroll { -ms-overflow-style:none;scrollbar-width:none; }
-
-  .skeleton {
-    background:linear-gradient(90deg,#16161f 25%,#1c1c28 50%,#16161f 75%);
-    background-size:200% 100%;animation:skeletonPulse 1.5s ease infinite;
-  }
-  @keyframes skeletonPulse { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-  .btn-login {
-    display:inline-flex;align-items:center;gap:8px;
-    padding:8px 18px;border-radius:12px;
-    font-size:0.82rem;font-weight:700;
-    background:linear-gradient(135deg,#fbbf24,#f59e0b);
-    color:#0a0a0f;text-decoration:none;
-    transition:all 0.25s cubic-bezier(.4,0,.2,1);
-    position:relative;overflow:hidden;
-  }
-  .btn-login::before {
-    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);
-    transition:left 0.5s ease;
-  }
-  .btn-login:hover::before { left:100%; }
-  .btn-login:hover {
-    box-shadow:0 6px 24px -4px rgba(251,191,36,0.5);
-    transform:translateY(-1px);
-  }
-
-  .profile-avatar {
-    width:38px;height:38px;border-radius:12px;
-    display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:0.82rem;
-    cursor:pointer;transition:all 0.2s ease;
-    position:relative;overflow:hidden;
-    border:2px solid transparent;
-  }
-  .profile-avatar:hover {
-    border-color:rgba(251,191,36,0.4);
-    box-shadow:0 0 20px -4px rgba(251,191,36,0.2);
-  }
-  .profile-avatar img { width:100%;height:100%;object-fit:cover;border-radius:10px; }
-  .online-dot {
-    position:absolute;bottom:0;right:0;
-    width:10px;height:10px;border-radius:50%;
-    background:#22c55e;border:2px solid #0a0a0f;
-  }
-
-  .review-trigger {
-    cursor:pointer;transition:all 0.2s ease;border-radius:6px;padding:2px 0;
-  }
-  .review-trigger:hover .review-trigger-text { color:#fbbf24 !important; }
-  .review-trigger:hover .review-trigger-icon { color:#fbbf24 !important; transform:scale(1.1); }
-
-  .review-overlay {
-    position:fixed;inset:0;z-index:9000;
-    background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    display:flex;align-items:center;justify-content:center;padding:16px;
-    opacity:0;visibility:hidden;transition:all 0.3s cubic-bezier(.4,0,.2,1);
-  }
-  .review-overlay.open { opacity:1;visibility:visible; }
-
-  .review-modal {
-    width:100%;max-width:580px;max-height:88vh;background:#13131b;
-    border:1px solid rgba(255,255,255,0.08);border-radius:24px;overflow:hidden;
-    transform:translateY(30px) scale(0.96);transition:all 0.35s cubic-bezier(.4,0,.2,1);
-    box-shadow:0 40px 80px -20px rgba(0,0,0,0.8);display:flex;flex-direction:column;
-  }
-  .review-overlay.open .review-modal { transform:translateY(0) scale(1); }
-
-  .review-modal-header {
-    padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.05);
-    display:flex;align-items:center;gap:16px;flex-shrink:0;
-  }
-  .review-modal-header img {
-    width:56px;height:56px;border-radius:14px;object-fit:cover;border:1px solid rgba(255,255,255,0.06);
-  }
-  .review-modal-close {
-    margin-left:auto;width:36px;height:36px;border-radius:10px;
-    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);
-    color:rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;
-    cursor:pointer;transition:all 0.2s ease;font-size:0.8rem;flex-shrink:0;
-  }
-  .review-modal-close:hover { background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.2);color:#f87171; }
-
-  .review-modal-body { flex:1;overflow-y:auto;padding:0; }
-  .review-modal-body::-webkit-scrollbar { width:5px; }
-  .review-modal-body::-webkit-scrollbar-track { background:transparent; }
-  .review-modal-body::-webkit-scrollbar-thumb { background:#2a2a3a;border-radius:99px; }
-
-  .write-review-section {
-    padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.05);
-    background:linear-gradient(180deg,rgba(251,191,36,0.03),transparent);
-  }
-  .write-review-section h4 { font-size:0.82rem;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:14px;display:flex;align-items:center;gap:8px; }
-  .write-review-section h4 i { color:#fbbf24;font-size:0.75rem; }
-
-  .star-selector { display:flex;align-items:center;gap:6px;margin-bottom:14px; }
-  .star-selector .star-btn {
-    background:none;border:none;cursor:pointer;padding:2px;font-size:1.4rem;
-    color:rgba(255,255,255,0.08);transition:all 0.15s ease;line-height:1;
-  }
-  .star-selector .star-btn:hover { transform:scale(1.2); }
-  .star-selector .star-btn.hovered { color:rgba(251,191,36,0.5); }
-  .star-selector .star-btn.selected { color:#fbbf24;filter:drop-shadow(0 0 6px rgba(251,191,36,0.4)); }
-  .star-label { font-size:0.75rem;font-weight:600;color:rgba(255,255,255,0.25);margin-left:6px;min-width:80px;transition:color 0.2s ease; }
-  .star-label.active { color:#fbbf24; }
-
-  .review-textarea {
-    width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
-    border-radius:14px;padding:14px 16px;font-size:0.82rem;color:#fff;
-    font-family:'Plus Jakarta Sans',sans-serif;resize:vertical;min-height:80px;max-height:160px;
-    transition:border-color 0.2s ease;line-height:1.6;
-  }
-  .review-textarea::placeholder { color:rgba(255,255,255,0.2); }
-  .review-textarea:focus { outline:none;border-color:rgba(251,191,36,0.4);box-shadow:0 0 0 3px rgba(251,191,36,0.06); }
-
-  .btn-submit-review {
-    display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:10px 24px;
-    border-radius:12px;font-size:0.8rem;font-weight:700;
-    background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0a0a0f;border:none;
-    cursor:pointer;transition:all 0.25s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;
-  }
-  .btn-submit-review::before {
-    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);transition:left 0.5s ease;
-  }
-  .btn-submit-review:hover::before { left:100%; }
-  .btn-submit-review:hover { box-shadow:0 6px 24px -4px rgba(251,191,36,0.5);transform:translateY(-1px); }
-  .btn-submit-review:disabled { opacity:0.4;cursor:not-allowed;transform:none !important;box-shadow:none !important; }
-  .btn-submit-review:disabled::before { display:none; }
-
-  .login-to-review {
-    display:flex;align-items:center;gap:12px;padding:16px;
-    background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);border-radius:14px;
-  }
-  .login-to-review i { font-size:1.2rem;color:rgba(255,255,255,0.15); }
-  .login-to-review p { font-size:0.8rem;color:rgba(255,255,255,0.35);line-height:1.5; }
-  .login-to-review a { color:#fbbf24;font-weight:700;text-decoration:none;transition:color 0.2s; }
-  .login-to-review a:hover { color:#fde68a; }
-
-  .already-reviewed {
-    display:flex;align-items:center;gap:10px;padding:14px 16px;
-    background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.12);border-radius:14px;
-  }
-  .already-reviewed i { color:#22c55e;font-size:1rem; }
-  .already-reviewed p { font-size:0.8rem;color:rgba(34,197,94,0.7);font-weight:600; }
-
-  .reviews-list-header {
-    padding:16px 24px 12px;display:flex;align-items:center;justify-content:space-between;
-  }
-  .reviews-list-header h4 {
-    font-size:0.78rem;font-weight:700;color:rgba(255,255,255,0.5);
-    text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:8px;
-  }
-  .reviews-list-header span { font-size:0.7rem;font-weight:600;background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:6px;color:rgba(255,255,255,0.3); }
-
-  .review-item { padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.2s ease; }
-  .review-item:hover { background:rgba(255,255,255,0.015); }
-  .review-item:last-child { border-bottom:none; }
-  .review-item-top { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
-  .review-avatar {
-    width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:0.7rem;background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(251,191,36,0.05));
-    color:#fbbf24;flex-shrink:0;overflow:hidden;border:1px solid rgba(255,255,255,0.06);
-  }
-  .review-avatar img { width:100%;height:100%;object-fit:cover;border-radius:9px; }
-  .review-username { font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.8); }
-  .review-time { font-size:0.65rem;color:rgba(255,255,255,0.2);margin-left:auto;flex-shrink:0; }
-  .review-stars { display:flex;align-items:center;gap:2px;margin-bottom:8px; }
-  .review-stars i { font-size:0.65rem; }
-  .review-stars .fa-solid.fa-star { color:#fbbf24; }
-  .review-stars .fa-regular.fa-star { color:rgba(255,255,255,0.08); }
-  .review-comment { font-size:0.8rem;color:rgba(255,255,255,0.45);line-height:1.65;word-break:break-word; }
-
-  .reviews-empty { padding:40px 24px;text-align:center; }
-  .reviews-empty i { font-size:2rem;color:rgba(255,255,255,0.06);margin-bottom:12px;display:block; }
-  .reviews-empty p { font-size:0.82rem;color:rgba(255,255,255,0.2); }
-  .reviews-loading { padding:40px 24px;text-align:center; }
-  .reviews-loading .spinner {
-    width:32px;height:32px;border:3px solid rgba(255,255,255,0.05);border-top-color:#fbbf24;
-    border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;
-  }
-  @keyframes spin { to { transform:rotate(360deg); } }
-  .reviews-loading p { font-size:0.78rem;color:rgba(255,255,255,0.25); }
-
-  .toast-container {
-    position:fixed;bottom:24px;right:24px;z-index:99999;
-    display:flex;flex-direction:column-reverse;gap:10px;pointer-events:none;
-  }
-  .toast {
-    display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:14px;
-    font-size:0.8rem;font-weight:600;pointer-events:auto;
-    transform:translateX(120%);opacity:0;transition:all 0.35s cubic-bezier(.4,0,.2,1);
-    box-shadow:0 15px 40px -10px rgba(0,0,0,0.6);max-width:360px;
-  }
-  .toast.show { transform:translateX(0);opacity:1; }
-  .toast.exit { transform:translateX(120%);opacity:0; }
-  .toast-success { background:#13131b;border:1px solid rgba(34,197,94,0.2);color:#4ade80; }
-  .toast-success i { color:#22c55e; }
-  .toast-error { background:#13131b;border:1px solid rgba(239,68,68,0.2);color:#f87171; }
-  .toast-error i { color:#ef4444; }
-  .toast-info { background:#13131b;border:1px solid rgba(251,191,36,0.2);color:#fbbf24; }
-  .toast-info i { color:#f59e0b; }
-
-  /* ===== ABOUT SECTION STYLES ===== */
-  .section-orb {
-    position:absolute;border-radius:50%;filter:blur(120px);opacity:0.25;pointer-events:none;
-  }
-  .section-orb-1 {
-    width:400px;height:400px;top:-100px;right:-60px;
-    background:radial-gradient(circle,rgba(251,191,36,0.18),transparent 70%);
-    animation:orbFloat 14s ease-in-out infinite alternate;
-  }
-  .section-orb-2 {
-    width:300px;height:300px;bottom:-60px;left:-40px;
-    background:radial-gradient(circle,rgba(245,158,11,0.1),transparent 70%);
-    animation:orbFloat 18s ease-in-out infinite alternate-reverse;
-  }
-
-  .value-card {
-    background:#101018;border:1px solid rgba(255,255,255,0.04);border-radius:20px;
-    padding:28px 24px;transition:all 0.4s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;
-  }
-  .value-card::before {
-    content:'';position:absolute;inset:0;border-radius:20px;
-    background:linear-gradient(135deg,rgba(251,191,36,0.06),transparent 60%);
-    opacity:0;transition:opacity 0.4s ease;pointer-events:none;
-  }
-  .value-card:hover {
-    transform:translateY(-5px);border-color:rgba(251,191,36,0.12);
-    box-shadow:0 16px 40px -12px rgba(0,0,0,0.5),0 0 30px -8px rgba(251,191,36,0.05);
-  }
-  .value-card:hover::before { opacity:1; }
-  .value-icon {
-    width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;
-    font-size:1.15rem;transition:all 0.3s ease;
-  }
-  .value-card:hover .value-icon { transform:scale(1.08); }
-
-  .stat-block { text-align:center;padding:20px 12px;border-right:1px solid rgba(255,255,255,0.05); }
-  .stat-block:last-child { border-right:none; }
-  .stat-number {
-    font-size:2rem;font-weight:800;line-height:1;
-    background:linear-gradient(135deg,#fbbf24,#f59e0b);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  }
-
-  .timeline-line {
-    position:absolute;left:21px;top:0;bottom:0;width:2px;
-    background:linear-gradient(180deg,rgba(251,191,36,0.25),rgba(251,191,36,0.04));
-  }
-  .timeline-dot {
-    width:10px;height:10px;border-radius:50%;background:#fbbf24;
-    border:2px solid #0a0a0f;position:absolute;left:17px;top:8px;z-index:2;
-    box-shadow:0 0 10px rgba(251,191,36,0.3);
-  }
-
-  /* ===== CONTACT SECTION STYLES ===== */
-  .form-card {
-    background:#101018;border:1px solid rgba(255,255,255,0.05);border-radius:24px;
-    padding:32px 28px;position:relative;overflow:hidden;
-  }
-  .form-card::before {
-    content:'';position:absolute;top:0;left:0;right:0;height:1px;
-    background:linear-gradient(90deg,transparent,rgba(251,191,36,0.2),transparent);
-  }
-  .form-group { margin-bottom:18px; }
-  .form-label {
-    display:block;font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.5);
-    margin-bottom:7px;text-transform:uppercase;letter-spacing:0.04em;
-  }
-  .form-input {
-    width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
-    border-radius:14px;padding:12px 15px;font-size:0.84rem;color:#fff;
-    font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.25s ease;
-  }
-  .form-input::placeholder { color:rgba(255,255,255,0.18); }
-  .form-input:focus {
-    outline:none;border-color:rgba(251,191,36,0.4);
-    box-shadow:0 0 0 3px rgba(251,191,36,0.06);background:rgba(255,255,255,0.04);
-  }
-  .form-input.error { border-color:rgba(239,68,68,0.4);box-shadow:0 0 0 3px rgba(239,68,68,0.06); }
-  textarea.form-input { resize:vertical;min-height:110px;max-height:200px;line-height:1.6; }
-
-  .btn-contact-submit {
-    display:inline-flex;align-items:center;gap:10px;padding:13px 28px;border-radius:14px;
-    font-size:0.86rem;font-weight:700;background:linear-gradient(135deg,#fbbf24,#f59e0b);
-    color:#0a0a0f;border:none;cursor:pointer;transition:all 0.25s cubic-bezier(.4,0,.2,1);
-    position:relative;overflow:hidden;width:100%;justify-content:center;
-  }
-  .btn-contact-submit::before {
-    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);transition:left 0.5s ease;
-  }
-  .btn-contact-submit:hover::before { left:100%; }
-  .btn-contact-submit:hover { box-shadow:0 8px 28px -6px rgba(251,191,36,0.5);transform:translateY(-2px); }
-
-  .form-alert {
-    display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:14px;
-    font-size:0.8rem;font-weight:600;margin-bottom:18px;
-  }
-  .form-alert.success { background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);color:#4ade80; }
-  .form-alert.error { background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:#f87171; }
-
-  .info-card {
-    background:#101018;border:1px solid rgba(255,255,255,0.04);border-radius:18px;
-    padding:20px;transition:all 0.35s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;
-  }
-  .info-card::before {
-    content:'';position:absolute;inset:0;border-radius:18px;
-    background:linear-gradient(135deg,rgba(251,191,36,0.05),transparent 60%);
-    opacity:0;transition:opacity 0.35s ease;pointer-events:none;
-  }
-  .info-card:hover { transform:translateY(-3px);border-color:rgba(251,191,36,0.1);box-shadow:0 12px 32px -10px rgba(0,0,0,0.4); }
-  .info-card:hover::before { opacity:1; }
-  .info-icon {
-    width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-    font-size:1rem;transition:all 0.3s ease;flex-shrink:0;
-  }
-  .info-card:hover .info-icon { transform:scale(1.08); }
-
-  .faq-item {
-    background:#101018;border:1px solid rgba(255,255,255,0.04);border-radius:16px;overflow:hidden;transition:all 0.3s ease;
-  }
-  .faq-item:hover { border-color:rgba(255,255,255,0.08); }
-  .faq-item.open { border-color:rgba(251,191,36,0.15); }
-  .faq-question {
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:16px 20px;cursor:pointer;transition:all 0.2s ease;border:none;background:none;
-    width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;
-  }
-  .faq-question:hover { background:rgba(255,255,255,0.02); }
-  .faq-question h4 { font-size:0.83rem;font-weight:700;color:rgba(255,255,255,0.7);transition:color 0.2s; }
-  .faq-item.open .faq-question h4 { color:#fbbf24; }
-  .faq-arrow {
-    width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.04);
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    transition:all 0.3s ease;color:rgba(255,255,255,0.25);font-size:0.65rem;
-  }
-  .faq-item.open .faq-arrow { transform:rotate(180deg);background:rgba(251,191,36,0.1);color:#fbbf24; }
-  .faq-answer { max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(.4,0,.2,1); }
-  .faq-answer-inner { padding:0 20px 16px;font-size:0.78rem;color:rgba(255,255,255,0.35);line-height:1.7; }
-
-  .map-card {
-    background:#101018;border:1px solid rgba(255,255,255,0.04);border-radius:20px;overflow:hidden;position:relative;
-  }
-  .map-card::after {
-    content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(10,10,15,0.2),rgba(10,10,15,0.05));
-    pointer-events:none;border-radius:20px;
-  }
-
-  .social-link {
-    display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;
-    background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);
-    text-decoration:none;transition:all 0.25s ease;
-  }
-  .social-link:hover { background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);transform:translateX(3px); }
-  .social-icon {
-    width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-    font-size:0.9rem;flex-shrink:0;transition:transform 0.2s ease;
-  }
-  .social-link:hover .social-icon { transform:scale(1.08); }
-
-  .section-divider {
-    height:1px;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent);
-    margin:0 auto;max-width:200px;
-  }
+/* ════════ GLASS DIVIDER ════════ */
+.glass-divider{
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);
+}
 </style>
-
 </head>
-
 <body>
 
-<!-- ========== REVIEW MODAL ========== -->
-<div class="review-overlay" id="reviewOverlay">
-  <div class="review-modal">
-    <div class="review-modal-header">
-      <img id="reviewProdImg" src="" alt="" onerror="this.src='https://picsum.photos/seed/review/100/100.jpg'">
+<!-- ═══ BG LAYERS ═══ -->
+<div class="glass-bg"></div>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+<div class="blob blob-4"></div>
+<div class="blob blob-5"></div>
+
+<!-- ═══ REVIEW MODAL ═══ -->
+<div class="rev-overlay" id="reviewOverlay">
+  <div class="rev-modal">
+    <div class="rev-head">
+      <img id="reviewProdImg" src="" alt="" onerror="this.src='https://picsum.photos/seed/rev/100/100.jpg'">
       <div class="min-w-0 flex-1">
-        <h3 id="reviewProdName" class="text-sm font-bold text-white leading-snug truncate">Product Name</h3>
-        <p id="reviewProdPrice" class="text-base font-extrabold text-gold-400 mt-0.5">Rs. 0</p>
-        <div class="flex items-center gap-2 mt-1.5">
+        <h3 id="reviewProdName" class="text-sm font-bold truncate" style="color:#fff">Product</h3>
+        <p id="reviewProdPrice" class="text-lg font-extrabold" style="color:#fbbf24">Rs. 0</p>
+        <div class="flex items-center gap-2 mt-1">
           <div id="reviewProdStars" class="flex items-center gap-0.5"></div>
-          <span id="reviewProdStats" class="text-[10px] text-white/25 font-medium"></span>
+          <span id="reviewProdStats" class="text-[11px] font-medium" style="color:rgba(255,255,255,.3)"></span>
         </div>
       </div>
-      <button class="review-modal-close" onclick="closeReviewModal()"><i class="fa-solid fa-xmark"></i></button>
+      <button class="rev-close" onclick="closeReviewModal()"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div class="review-modal-body" id="reviewBody">
-      <div class="reviews-loading" id="reviewLoading"><div class="spinner"></div><p>Loading reviews...</p></div>
+    <div class="rev-body" id="reviewBody">
+      <div class="rev-loading"><div class="spinner"></div><p style="font-size:.82rem;color:rgba(255,255,255,.3)">Loading...</p></div>
     </div>
   </div>
 </div>
 
-<!-- ========== TOAST CONTAINER ========== -->
-<div class="toast-container" id="toastContainer"></div>
+<!-- ═══ TOAST ═══ -->
+<div class="toast-box" id="toastContainer"></div>
 
-
-<!-- ========== NAVBAR ========== -->
-<nav class="nav-blur fixed top-0 left-0 right-0 z-50 px-6 lg:px-10 py-4">
-  <div class="max-w-7xl mx-auto flex items-center justify-between">
-    <a href="index.php" class="flex items-center gap-3" style="text-decoration:none">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
-        <i class="fa-solid fa-headphones text-surface-900 text-sm"></i>
+<!-- ═══ DESKTOP NAV ═══ -->
+<nav class="desk-nav nav-glass fixed top-0 left-0 right-0 z-50" id="mainNav">
+  <div class="max-w-[1500px] mx-auto px-5 lg:px-10 flex items-center h-16 gap-4">
+    <a href="index.php" class="flex items-center gap-2.5 flex-shrink-0 no-underline">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,rgba(245,158,11,.8),rgba(234,88,12,.8));border:1px solid rgba(255,255,255,.15)">
+        <i class="fa-solid fa-headphones text-white text-sm"></i>
       </div>
-      <span class="text-lg font-extrabold text-white tracking-tight">AHMUS<span class="text-gold-400">Shop</span></span>
+      <span class="text-xl font-extrabold tracking-tight text-white">ahmus<span class="text-amber-400">Shop</span></span>
     </a>
-    <div class="hidden md:flex items-center gap-8">
-      <a href="index.php" class="text-sm font-medium text-white hover:text-gold-400 transition">Home</a>
-      <a href="#products" class="text-sm font-medium text-white/50 hover:text-gold-400 transition">Products</a>
-      <a href="#about" class="text-sm font-medium text-white/50 hover:text-gold-400 transition">About</a>
-      <a href="#contact" class="text-sm font-medium text-white/50 hover:text-gold-400 transition">Contact</a>
+    <div class="flex-1 max-w-2xl relative">
+      <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-xs" style="color:rgba(255,255,255,.3)"></i>
+      <input type="text" placeholder="Search AHMUS Shop..." id="navSearchInput" class="glass-input w-full h-11 pl-11 pr-12 rounded-xl text-sm">
+      <button onclick="doSearch()" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg glass-btn border-none text-sm cursor-pointer flex items-center justify-center"><i class="fa-solid fa-magnifying-glass text-xs"></i></button>
     </div>
-    <div class="flex items-center gap-2 sm:gap-3">
-      <button onclick="toggleSearch()" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition text-white/60 hover:text-white">
-        <i class="fa-solid fa-magnifying-glass text-sm"></i>
-      </button>
-      <a href="cart.php" class="relative w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition text-white/60 hover:text-white">
+    <div class="flex items-center gap-2.5 flex-shrink-0">
+      <a href="cart.php" class="relative w-11 h-11 rounded-xl flex items-center justify-center glass-light no-underline transition-all hover:bg-white/10" style="color:rgba(255,255,255,.6);cursor:pointer">
         <i class="fa-solid fa-bag-shopping text-sm"></i>
-        <?php if ($count > 0) { ?>
-          <span class="cart-pulse absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 text-surface-900 text-[10px] font-extrabold flex items-center justify-center"><?= $count ?></span>
-        <?php } ?>
+        <?php if ($count > 0): ?>
+        <span class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background:linear-gradient(135deg,#f59e0b,#ea580c);border:1px solid rgba(255,255,255,.2)" id="navCartBadge"><?= $count ?></span>
+        <?php endif; ?>
       </a>
       <?php if ($user): ?>
-        <div class="relative" id="profileWrap">
-          <div class="profile-avatar bg-gradient-to-br from-gold-400/20 to-gold-600/10 text-gold-400" onclick="toggleProfile()">
-            <?php if (!empty($user['image']) && file_exists("../backend/uploads/" . $user['image'])): ?>
-              <img src="../backend/uploads/<?= $user['image'] ?>" alt="<?= htmlspecialchars($user['name']) ?>">
-            <?php else: ?>
-              <?= strtoupper(mb_substr($user['name'], 0, 1)) ?>
-            <?php endif; ?>
-            <span class="online-dot"></span>
-          </div>
-          <div class="profile-dropdown" id="profileDropdown">
-            <div class="px-4 py-3.5 bg-gradient-to-r from-gold-500/5 to-transparent">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400/20 to-gold-600/10 flex items-center justify-center text-gold-400 font-extrabold text-sm shrink-0 overflow-hidden">
-                  <?php if (!empty($user['image']) && file_exists("../backend/uploads/" . $user['image'])): ?>
-                    <img src="../backend/uploads/<?= $user['image'] ?>" class="w-full h-full object-cover rounded-[10px]" alt="">
-                  <?php else: ?>
-                    <?= strtoupper(mb_substr($user['name'], 0, 1)) ?>
-                  <?php endif; ?>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-sm font-bold text-white truncate"><?= htmlspecialchars($user['name']) ?></p>
-                  <p class="text-[11px] text-white/30 truncate"><?= htmlspecialchars($user['email']) ?></p>
-                </div>
-              </div>
-            </div>
-            <div class="dropdown-divider"></div>
-            <div class="py-1.5">
-              <a href="#" class="dropdown-item"><i class="fa-solid fa-user"></i><span>My Profile</span></a>
-              <a href="#" class="dropdown-item"><i class="fa-solid fa-box"></i><span>My Orders</span></a>
-              <a href="cart.php" class="dropdown-item"><i class="fa-solid fa-bag-shopping"></i><span>My Cart</span></a>
-              <a href="#" class="dropdown-item"><i class="fa-solid fa-heart"></i><span>Wishlist</span></a>
-              <a href="#" class="dropdown-item"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
-            </div>
-            <div class="dropdown-divider"></div>
-            <div class="py-1.5">
-              <a href="../user/logout.php" class="dropdown-item danger"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></a>
-            </div>
-          </div>
-        </div>
-      <?php else: ?>
-        <a href="../user/login.php" class="btn-login"><i class="fa-solid fa-right-to-bracket text-xs"></i><span class="hidden sm:inline">Login</span></a>
-      <?php endif; ?>
-      <button onclick="toggleMobileMenu()" class="md:hidden w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition text-white/60">
-        <i class="fa-solid fa-bars text-sm"></i>
-      </button>
-    </div>
-  </div>
-  <div id="searchBar" class="hidden max-w-7xl mx-auto mt-4">
-    <div class="relative">
-      <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-sm"></i>
-      <input type="text" placeholder="Search products..." class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-gold-500/40 transition">
-    </div>
-  </div>
-  <div id="mobileMenu" class="hidden md:hidden mt-4 pb-2 border-t border-white/5 pt-4">
-    <a href="index.php" class="block py-2.5 text-sm font-medium text-white">Home</a>
-    <a href="#products" class="block py-2.5 text-sm font-medium text-white/50">Products</a>
-    <a href="#about" class="block py-2.5 text-sm font-medium text-white/50">About</a>
-    <a href="#contact" class="block py-2.5 text-sm font-medium text-white/50">Contact</a>
-    <?php if ($user): ?>
-      <div class="dropdown-divider mt-2 mb-2"></div>
-      <div class="flex items-center gap-3 py-2.5">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-gold-400/20 to-gold-600/10 flex items-center justify-center text-gold-400 font-extrabold text-xs overflow-hidden">
+      <div class="relative" id="profileWrap">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden transition-all hover:border-amber-400/50" style="background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.1)" onclick="toggleProfile()">
           <?php if (!empty($user['image']) && file_exists("../backend/uploads/" . $user['image'])): ?>
-            <img src="../backend/uploads/<?= $user['image'] ?>" class="w-full h-full object-cover rounded-lg" alt="">
+          <img src="../backend/uploads/<?= $user['image'] ?>" alt="" class="w-full h-full object-cover">
           <?php else: ?>
-            <?= strtoupper(mb_substr($user['name'], 0, 1)) ?>
+          <span class="text-sm font-bold" style="color:rgba(255,255,255,.6)"><?= strtoupper(mb_substr($user['name'], 0, 1)) ?></span>
           <?php endif; ?>
         </div>
-        <div class="min-w-0">
-          <p class="text-sm font-bold text-white truncate"><?= htmlspecialchars($user['name']) ?></p>
-          <p class="text-[11px] text-white/30"><?= htmlspecialchars($user['email']) ?></p>
+        <div class="ud" id="userDropdown">
+          <div class="px-4 py-3" style="background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06)">
+            <div class="text-sm font-bold text-white"><?= htmlspecialchars($user['name']) ?></div>
+            <div class="text-xs mt-0.5" style="color:rgba(255,255,255,.3)"><?= htmlspecialchars($user['email']) ?></div>
+          </div>
+          <div class="py-1">
+            <a href="My-profile.php" class="ud-item"><i class="fa-solid fa-user"></i>My Profile</a>
+            <a href="My-Orders.php" class="ud-item"><i class="fa-solid fa-box"></i>My Orders</a>
+            <a href="cart.php" class="ud-item"><i class="fa-solid fa-bag-shopping"></i>My Cart</a>
+            <a href="#" class="ud-item"><i class="fa-solid fa-heart"></i>Wishlist</a>
+          </div>
+          <div class="ud-sep"></div>
+          <div class="py-1">
+            <a href="../user/logout.php" class="ud-item danger"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+          </div>
         </div>
       </div>
-      <a href="#" class="block py-2.5 text-sm font-medium text-white/50">My Orders</a>
-      <a href="cart.php" class="block py-2.5 text-sm font-medium text-white/50">My Cart</a>
-      <a href="../backend/logout.php" class="block py-2.5 text-sm font-medium text-red-400/70 hover:text-red-400">Logout</a>
-    <?php else: ?>
-      <div class="dropdown-divider mt-2 mb-2"></div>
-      <a href="../user/login.php" class="btn-login justify-center mt-1"><i class="fa-solid fa-right-to-bracket text-xs"></i><span>Login / Sign Up</span></a>
-    <?php endif; ?>
+      <?php else: ?>
+      <a href="../user/login.php" class="glass-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold no-underline"><i class="fa-solid fa-right-to-bracket text-xs"></i>Login</a>
+      <?php endif; ?>
+    </div>
   </div>
 </nav>
 
-
-<!-- ========== HERO ========== -->
-<section class="relative min-h-[92vh] flex items-center overflow-hidden pt-20">
-  <div class="hero-orb hero-orb-1"></div>
-  <div class="hero-orb hero-orb-2"></div>
-  <div class="max-w-7xl mx-auto px-6 lg:px-10 w-full">
-    <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-      <div class="flex-1 text-center lg:text-left fade-up">
-        <div class="inline-flex items-center gap-2 bg-gold-500/10 border border-gold-500/20 rounded-full px-4 py-1.5 mb-6">
-          <span class="w-2 h-2 rounded-full bg-gold-400 animate-pulse"></span>
-          <span class="text-xs font-semibold text-gold-400 uppercase tracking-wider">New Collection 2026</span>
+<!-- ═══ HERO ═══ -->
+<section class="pt-28 pb-8 lg:pt-36 lg:pb-12 relative">
+  <div class="max-w-[1500px] mx-auto px-5 lg:px-10">
+    <div class="grid lg:grid-cols-2 gap-10 items-center relative z-10">
+      <div class="rv on">
+        <div class="sec-label mb-6">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          PREMIUM QUALITY PRODUCTS
         </div>
-        <h1 class="text-4xl sm:text-5xl lg:text-4xl font-extrabold leading-[1.1] tracking-tight">
-          Welcome to AHMUS <br><span class="text-shimmer">Your Trusted Online Store</span>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight mb-6 text-white">
+          Shop Smart.<br>Live <span class="glow-text">Better.</span>
         </h1>
-        <p class="text-white/40 mt-5 text-base lg:text-lg max-w-md mx-auto lg:mx-0 leading-relaxed">
-          Discover premium quality products at unbeatable prices. Shop smart, live better with AHMUS.
+        <p class="text-base lg:text-lg leading-relaxed mb-8 max-w-lg" style="color:rgba(255,255,255,.45)">
+          Discover premium quality computers & accessories at unbeatable prices. Trusted by 50K+ customers across Pakistan.
         </p>
-        <div class="flex items-center gap-4 mt-8 justify-center lg:justify-start">
-          <a href="#products" class="btn-cart px-7 py-3.5 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-headphones text-xs"></i> Shop Now
+        <div class="flex flex-wrap gap-3 mb-10">
+          <a href="#products" class="glass-btn inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-sm font-bold no-underline">
+            <i class="fa-solid fa-bolt text-xs"></i>Shop Now
           </a>
-          <a href="#" class="btn-view px-7 py-3.5 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-play text-[10px]"></i> Explore Categories
+          <a href="#about" class="glass-btn-dark inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-sm font-semibold no-underline">
+            Learn More
           </a>
         </div>
-        <div class="flex items-center gap-8 mt-12 justify-center lg:justify-start">
-          <div><p class="text-2xl font-extrabold text-white">50K+</p><p class="text-xs text-white/30 mt-0.5">Happy Customers</p></div>
-          <div class="w-px h-10 bg-white/10"></div>
-          <div><p class="text-2xl font-extrabold text-white">4.9★</p><p class="text-xs text-white/30 mt-0.5">Average Rating</p></div>
-          <div class="w-px h-10 bg-white/10"></div>
-          <div><p class="text-2xl font-extrabold text-white">200+</p><p class="text-xs text-white/30 mt-0.5">Products</p></div>
+        <div class="flex flex-wrap gap-8 desk-stats">
+          <div>
+            <p class="text-2xl font-extrabold text-white">50K+</p>
+            <p class="text-xs mt-0.5" style="color:rgba(255,255,255,.3)">Happy Customers</p>
+          </div>
+          <div class="w-px self-stretch" style="background:rgba(255,255,255,.08)"></div>
+          <div>
+            <p class="text-2xl font-extrabold text-white">4.9★</p>
+            <p class="text-xs mt-0.5" style="color:rgba(255,255,255,.3)">Avg Rating</p>
+          </div>
+          <div class="w-px self-stretch" style="background:rgba(255,255,255,.08)"></div>
+          <div>
+            <p class="text-2xl font-extrabold text-white">200+</p>
+            <p class="text-xs mt-0.5" style="color:rgba(255,255,255,.3)">Products</p>
+          </div>
         </div>
       </div>
-      <div class="flex-1 flex justify-center fade-up" style="animation-delay:0.15s">
+      <div class="rv d2 on flex justify-center lg:justify-end">
         <div class="relative">
-          <div class="absolute inset-0 bg-gradient-to-br from-gold-400/20 to-transparent rounded-full blur-3xl scale-75"></div>
-          <img src="../backend/uploads/image5.png" alt="Featured Product" class="hero-img relative w-80 lg:w-[420px] drop-shadow-2xl" onerror="this.src='https://picsum.photos/seed/hero-beats/500/500.jpg'">
+          <div class="absolute inset-0 rounded-3xl" style="background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(139,92,246,.2));filter:blur(40px);transform:scale(.85)"></div>
+          <img src="../backend/uploads/image5.png" alt="Featured Product" class="relative w-full max-w-md lg:max-w-lg rounded-3xl" style="border:1px solid rgba(255,255,255,.1)" onerror="this.src='https://picsum.photos/seed/hero-amz/600/500.jpg'">
         </div>
       </div>
     </div>
   </div>
 </section>
 
+<div class="glass-divider max-w-[1500px] mx-auto"></div>
 
-<!-- ========== CATEGORIES ========== -->
-<section class="py-6 relative">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-    <div class="flex items-center gap-4 mb-5">
-      <h2 class="text-sm font-bold text-white/80 uppercase tracking-wider">
-        <i class="fa-solid fa-filter text-gold-400 mr-2 text-xs"></i>Browse by Category
+<!-- ═══ CATEGORIES ═══ -->
+<section class="py-8">
+  <div class="max-w-[1500px] mx-auto px-5 lg:px-10">
+    <div class="flex items-center justify-between mb-4 rv">
+      <h2 class="text-xs font-bold tracking-widest uppercase" style="color:rgba(255,255,255,.35)">
+        <i class="fa-solid fa-layer-group text-amber-400 mr-2"></i>Categories
       </h2>
-      <span id="clearFilter" class="<?= $active_cat > 0 ? '' : 'hidden' ?> text-xs font-medium text-gold-400 hover:text-gold-300 transition flex items-center gap-1 cursor-pointer" onclick="loadCategory(0)">
-        <i class="fa-solid fa-xmark text-[10px]"></i> Clear Filter
-      </span>
+      <button id="clearFilter" class="<?= $active_cat > 0 ? '' : 'hidden' ?> glass-btn-dark text-xs font-semibold rounded-lg px-3 py-1.5 cursor-pointer" onclick="loadCategory(0)">
+        <i class="fa-solid fa-xmark text-[10px] mr-1"></i>Clear
+      </button>
     </div>
-    <div class="cat-scroll flex items-center gap-3 overflow-x-auto pb-2" id="catBar">
-      <span class="cat-pill <?= $active_cat === 0 ? 'active' : '' ?>" data-cat="0" onclick="loadCategory(0)">
-        <i class="fa-solid fa-grid-2 mr-1.5 text-[10px]"></i>All
-      </span>
-      <?php
+    <div class="overflow-x-auto pb-2 rv" style="-webkit-overflow-scrolling:touch">
+      <div class="flex gap-2.5 min-w-max" id="catBar">
+        <a href="javascript:void(0)" class="cat-pill <?= $active_cat === 0 ? 'active' : '' ?>" data-cat="0" onclick="loadCategory(0)">
+          <i class="fa-solid fa-border-all text-xs"></i>All
+        </a>
+        <?php
         mysqli_data_seek($cat_result, 0);
+        $catIcons = array('fa-laptop','fa-mobile-screen','fa-headphones','fa-gamepad','fa-camera','fa-shirt','fa-gem','fa-home','fa-futbol','fa-book','fa-plug','fa-car','fa-baby','fa-utensils','fa-box-open');
+        $catIdx = 0;
         while ($cat = mysqli_fetch_assoc($cat_result)) {
-      ?>
-        <span class="cat-pill <?= $active_cat == $cat['id'] ? 'active' : '' ?>" data-cat="<?= $cat['id'] ?>" onclick="loadCategory(<?= $cat['id'] ?>)">
-          <?= htmlspecialchars($cat['category_name']) ?>
-        </span>
-      <?php } ?>
+            $icon = isset($catIcons[$catIdx]) ? $catIcons[$catIdx] : 'fa-tag';
+            $catIdx++;
+        ?>
+        <a href="javascript:void(0)" class="cat-pill <?= $active_cat == $cat['id'] ? 'active' : '' ?>" data-cat="<?= $cat['id'] ?>" onclick="loadCategory(<?= $cat['id'] ?>)">
+          <i class="fa-solid <?= $icon ?> text-xs"></i><?= htmlspecialchars($cat['category_name']) ?>
+        </a>
+        <?php } ?>
+      </div>
     </div>
   </div>
 </section>
 
-
-<!-- ========== PRODUCTS ========== -->
-<section id="products" class="py-8 pb-16">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-    <div class="flex items-end justify-between mb-8 fade-up">
+<!-- ═══ PRODUCTS ═══ -->
+<section id="products" class="pb-16">
+  <div class="max-w-[1500px] mx-auto px-5 lg:px-10">
+    <div class="flex items-end justify-between mb-6 rv">
       <div>
-        <h2 id="sectionTitle" class="text-2xl font-extrabold text-white tracking-tight"><?= $active_cat_name ?></h2>
-        <p id="sectionCount" class="text-sm text-white/30 mt-1"><?= $product_count ?> product<?= $product_count !== 1 ? 's' : '' ?> available</p>
+        <h2 class="text-2xl font-extrabold tracking-tight text-white"><?= htmlspecialchars($active_cat_name) ?></h2>
+        <p class="text-sm mt-1" style="color:rgba(255,255,255,.3)"><?= $product_count ?> result<?= $product_count !== 1 ? 's' : '' ?></p>
       </div>
     </div>
-    <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
       <?php
-        $delay = 0;
-        while ($product = mysqli_fetch_assoc($product_result)) {
-          $delay += 0.06;
-          $imgPath = "../backend/uploads/" . $product['image'];
+      $di = 0;
+      while ($product = mysqli_fetch_assoc($product_result)) {
+          $dc = 'd' . (1 + ($di % 4));
+          $di++;
+          $imgP = "../backend/uploads/" . $product['image'];
           $avg = round($product['avg_rating'], 1);
-          $specs = [];
-          if (!empty($product['specs_data'])) {
-              $specPairs = explode('||', $product['specs_data']);
-              foreach ($specPairs as $pair) {
-                  $parts = explode('::', $pair, 2);
-                  if (count($parts) == 2) { $specs[$parts[0]] = $parts[1]; }
-              }
+          $original_price = !empty($product['original_price']) ? $product['original_price'] : 0;
+          $discount = 0;
+          if ($original_price > 0 && $product['price'] > 0) {
+              $discount = round((1 - $product['price'] / $original_price) * 100);
           }
       ?>
-      <div class="prod-card fade-up" style="animation-delay:<?= $delay ?>s">
-        <a href="product_detail.php?id=<?= $product['id'] ?>" class="prod-img-wrap block">
-          <img src="<?= $imgPath ?>" alt="<?= htmlspecialchars($product['product_name']) ?>" onerror="this.src='https://picsum.photos/seed/<?= $product['id'] ?>/400/300.jpg'">
-          <span class="cat-badge"><i class="fa-solid fa-folder text-[8px] mr-1"></i><?= htmlspecialchars($product['category_name']) ?></span>
-        </a>
-        <div class="p-5 relative z-10">
-          <h3 class="text-sm font-bold text-white leading-snug"><?= htmlspecialchars($product['product_name']) ?></h3>
-          <p class="text-xs text-white/30 mt-1.5 leading-relaxed line-clamp-2"><?= htmlspecialchars($product['description'] ?? 'Premium quality product with exceptional performance.') ?></p>
-          <?php if (!empty($specs)) { ?>
-          <div class="flex flex-wrap gap-1.5 mt-3">
-              <?php $displaySpecs = array_slice($specs, 0, 3);
-              foreach ($displaySpecs as $sName => $sValue) { ?>
-                  <span class="inline-flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-1 text-[10px]">
-                      <span class="text-white/40"><?= htmlspecialchars($sName) ?>:</span>
-                      <span class="text-white/70 font-semibold"><?= htmlspecialchars($sValue) ?></span>
-                  </span>
-              <?php } ?>
-              <?php if (count($specs) > 3) { ?>
-                  <span class="text-[10px] text-gold-400/70 font-semibold self-center">+<?= count($specs) - 3 ?> more</span>
-              <?php } ?>
+      <div class="pcard rv <?= $dc ?>">
+        <div class="pcard-img">
+          <a href="product_detail.php?id=<?= $product['id'] ?>" class="block no-underline">
+            <img src="<?= $imgP ?>" alt="<?= htmlspecialchars($product['product_name']) ?>" onerror="this.src='https://picsum.photos/seed/p<?= $product['id'] ?>/400/300.jpg'">
+          </a>
+          <?php if ($discount > 0): ?>
+          <span class="pcard-badge">-<?= $discount ?>%</span>
+          <?php endif; ?>
+        </div>
+        <div class="p-4">
+          <a href="product_detail.php?id=<?= $product['id'] ?>" class="block text-sm font-semibold leading-snug no-underline mb-2 text-white" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"><?= htmlspecialchars($product['product_name']) ?></a>
+          <div class="flex items-center gap-1.5 mb-3" style="color:rgba(255,255,255,.5)">
+            <?php
+            for ($i = 1; $i <= 5; $i++) {
+                if ($i <= floor($avg)) echo '<i class="fa-solid fa-star text-amber-400" style="font-size:.65rem"></i>';
+                elseif ($i - 0.5 <= $avg) echo '<i class="fa-solid fa-star-half-stroke text-amber-400" style="font-size:.65rem"></i>';
+                else echo '<i class="fa-regular fa-star" style="font-size:.65rem;color:rgba(255,255,255,.12)"></i>';
+            }
+            ?>
+            <span class="text-xs font-medium"><?= $avg ?><?php if ($product['total_reviews'] > 0): ?> (<?= $product['total_reviews'] ?>)<?php endif; ?></span>
+            <span class="review-trigger ml-auto text-xs underline cursor-pointer transition-colors hover:text-amber-400" style="color:rgba(255,255,255,.3)" data-review-trigger="<?= $product['id'] ?>">Reviews</span>
           </div>
-          <?php } ?>
-          <div class="review-trigger flex items-center gap-1.5 mt-3" data-review-trigger="<?= $product['id'] ?>">
-            <div class="flex items-center gap-0.5">
-              <?php for ($i = 1; $i <= 5; $i++) {
-                if ($i <= floor($avg)) { ?>
-                  <i class="fa-solid fa-star text-gold-400 text-[9px] review-trigger-icon transition"></i>
-              <?php } elseif ($i - 0.5 <= $avg) { ?>
-                  <i class="fa-solid fa-star-half-stroke text-gold-400 text-[9px] review-trigger-icon transition"></i>
-              <?php } else { ?>
-                  <i class="fa-regular fa-star text-white/10 text-[9px] review-trigger-icon transition"></i>
-              <?php } } ?>
-            </div>
-            <?php if ($product['total_reviews'] > 0) { ?>
-              <span class="text-[10px] text-white/25 font-medium review-trigger-text transition"><?= $avg ?> (<?= $product['total_reviews'] ?> reviews)</span>
-            <?php } else { ?>
-              <span class="text-[10px] text-white/20 font-medium review-trigger-text transition">No reviews yet</span>
-            <?php } ?>
-            <i class="fa-solid fa-pen-to-square text-[8px] text-white/10 review-trigger-icon transition ml-auto"></i>
+          <div class="flex items-baseline gap-2 mb-4">
+            <?php if ($original_price > 0): ?>
+            <span class="text-xs line-through" style="color:rgba(255,255,255,.25)">Rs. <?= number_format($original_price, 0) ?></span>
+            <?php endif; ?>
+            <span class="text-lg font-extrabold text-white">Rs. <?= number_format($product['price'], 0) ?></span>
           </div>
-          <div class="flex items-end justify-between mt-4 pt-4 border-t border-white/5">
-            <div>
-              <p class="text-[10px] text-white/25 uppercase tracking-wider font-medium">Price</p>
-              <p class="text-xl font-extrabold text-gold-400 mt-0.5">Rs. <?= number_format($product['price'], 0) ?></p>
-            </div>
-            <div class="flex items-center gap-2">
-              <a href="product_detail.php?id=<?= $product['id'] ?>" class="btn-view w-10 h-10 flex items-center justify-center" title="View Details"><i class="fa-solid fa-eye text-xs"></i></a>
-              <button data-add-cart="<?= $product['id'] ?>" class="btn-cart w-10 h-10 flex items-center justify-center" title="Add to Cart"><i class="fa-solid fa-bag-shopping text-xs"></i></button>
-            </div>
+          <div class="flex gap-2">
+            <button class="btn-wish" title="Wishlist"><i class="fa-regular fa-heart"></i></button>
+            <button class="btn-cart" data-add-cart="<?= $product['id'] ?>"><i class="fa-solid fa-cart-plus text-xs"></i>Add to Cart</button>
           </div>
         </div>
       </div>
@@ -981,840 +668,387 @@ tailwind.config = {
   </div>
 </section>
 
+<div class="glass-divider max-w-[1500px] mx-auto"></div>
 
-<!-- ========== SECTION DIVIDER ========== -->
-<div class="section-divider"></div>
-
-
-<!-- ========================================== -->
-<!-- ========== ABOUT US SECTION ============== -->
-<!-- ========================================== -->
-<section id="about" class="py-20 relative overflow-hidden">
-  <div class="section-orb section-orb-1"></div>
-  <div class="section-orb section-orb-2"></div>
-
-  <div class="max-w-7xl mx-auto px-6 lg:px-10 relative z-10">
-
-    <!-- Section Header -->
-    <div class="text-center mb-14 fade-up">
-      <div class="inline-flex items-center gap-2 bg-gold-500/10 border border-gold-500/20 rounded-full px-4 py-1.5 mb-4">
-        <i class="fa-solid fa-heart text-gold-400 text-[10px]"></i>
-        <span class="text-xs font-semibold text-gold-400 uppercase tracking-wider">Our Story</span>
+<!-- ═══ ABOUT ═══ -->
+<section id="about" class="py-20">
+  <div class="max-w-[1500px] mx-auto px-5 lg:px-10">
+    <div class="text-center mb-12 rv">
+      <div class="sec-label mb-4">
+        <i class="fa-solid fa-heart text-amber-400" style="font-size:.6rem"></i>Our Story
       </div>
-      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">About <span class="text-shimmer">AHMUS</span></h2>
-      <p class="text-sm text-white/30 mt-3 max-w-lg mx-auto leading-relaxed">As a growing startup, we are committed to building trust, delivering value, and continuously improving our services for our customers.</p>
+      <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight text-white">Why Choose <span class="glow-text">AHMUS</span>?</h2>
     </div>
-
-    <!-- Stats Bar -->
-    <div class="bg-surface-800 border border-white/[0.05] rounded-2xl overflow-hidden mb-14 fade-up" style="animation-delay:0.05s">
-      <div class="grid grid-cols-2 md:grid-cols-4">
-        <div class="stat-block">
-          <p class="stat-number">50K+</p>
-          <p class="text-xs text-white/30 mt-1.5 font-medium">Happy Customers</p>
-        </div>
-        <div class="stat-block">
-          <p class="stat-number">200+</p>
-          <p class="text-xs text-white/30 mt-1.5 font-medium">Products Listed</p>
-        </div>
-        <div class="stat-block">
-          <p class="stat-number">4.9★</p>
-          <p class="text-xs text-white/30 mt-1.5 font-medium">Average Rating</p>
-        </div>
-        <div class="stat-block">
-          <p class="stat-number">3+</p>
-          <p class="text-xs text-white/30 mt-1.5 font-medium">Years of Trust</p>
-        </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div class="rv d1 glass rounded-2xl text-center p-7 transition-all hover:bg-white/[.08]">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center text-xl" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.2);color:#fbbf24"><i class="fa-solid fa-headphones-simple"></i></div>
+        <h4 class="text-sm font-bold mb-1.5 text-white">Premium Quality</h4>
+        <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,.4)">Every product carefully selected to meet our quality standards.</p>
+      </div>
+      <div class="rv d2 glass rounded-2xl text-center p-7 transition-all hover:bg-white/[.08]">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center text-xl" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);color:#60a5fa"><i class="fa-solid fa-tags"></i></div>
+        <h4 class="text-sm font-bold mb-1.5 text-white">Fair Pricing</h4>
+        <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,.4)">Direct sourcing keeps prices fair and honest.</p>
+      </div>
+      <div class="rv d3 glass rounded-2xl text-center p-7 transition-all hover:bg-white/[.08]">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center text-xl" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.2);color:#4ade80"><i class="fa-solid fa-truck-fast"></i></div>
+        <h4 class="text-sm font-bold mb-1.5 text-white">Free Delivery</h4>
+        <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,.4)">Free shipping on all orders across Pakistan.</p>
+      </div>
+      <div class="rv d4 glass rounded-2xl text-center p-7 transition-all hover:bg-white/[.08]">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center text-xl" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);color:#f87171"><i class="fa-solid fa-rotate-left"></i></div>
+        <h4 class="text-sm font-bold mb-1.5 text-white">Easy Returns</h4>
+        <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,.4)">7-day hassle-free return with full refund.</p>
       </div>
     </div>
-
-    <!-- About Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center mb-16">
-      <!-- Left: Image -->
-      <div class="fade-up" style="animation-delay:0.08s">
-        <div class="relative">
-          <div class="absolute inset-0 bg-gradient-to-br from-gold-400/15 to-transparent rounded-3xl blur-2xl scale-90"></div>
-          <img src="../backend/uploads/image5.png" alt="About BeatsShop" class="relative w-full max-w-md mx-auto rounded-3xl drop-shadow-2xl border border-white/[0.04]" style="animation:heroFloat 5s ease-in-out infinite" onerror="this.src='https://picsum.photos/seed/about-beats/600/500.jpg'">
-          <!-- Floating badges -->
-          <div class="absolute -left-3 sm:-left-6 top-1/4 bg-surface-700 border border-white/[0.06] rounded-2xl px-4 py-3 shadow-2xl z-10" style="animation:heroFloat 4s ease-in-out infinite 0.5s">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-lg bg-green-500/15 flex items-center justify-center"><i class="fa-solid fa-truck-fast text-green-400 text-xs"></i></div>
-              <div><p class="text-[10px] font-bold text-white/80">Free Delivery</p><p class="text-[9px] text-white/30">All over Pakistan</p></div>
-            </div>
-          </div>
-          <div class="absolute -right-3 sm:-right-4 bottom-1/4 bg-surface-700 border border-white/[0.06] rounded-2xl px-4 py-3 shadow-2xl z-10" style="animation:heroFloat 4.5s ease-in-out infinite 1s">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-lg bg-gold-500/15 flex items-center justify-center"><i class="fa-solid fa-shield-check text-gold-400 text-xs"></i></div>
-              <div><p class="text-[10px] font-bold text-white/80">1 Year Warranty</p><p class="text-[9px] text-white/30">On all products</p></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right: Text -->
-      <div class="fade-up" style="animation-delay:0.13s">
-        <h3 class="text-xl font-extrabold text-white mb-4">We Started With One Simple Idea</h3>
-        <p class="text-sm text-white/35 leading-relaxed mb-4">
-          Frustrated by overpriced products that didn’t deliver real value, our founder Adil Khoso launched AHMUS from a small room in Karachi with just 15 carefully selected items and a bold vision — to make quality shopping accessible to everyone without unnecessary markup.
-        </p>
-        <p class="text-sm text-white/35 leading-relaxed mb-6">
-          Today, AHMUS is growing step by step with a commitment to quality and customer satisfaction. We are building a platform where every product is carefully selected, every order is handled with care, and every customer is treated like family.
-        </p>
-
-        <!-- Values mini list -->
-        <div class="space-y-3">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check text-gold-400 text-xs"></i></div>
-            <p class="text-sm text-white/55 font-medium">100% Carefully Verified, Quality Assured Products</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check text-gold-400 text-xs"></i></div>
-            <p class="text-sm text-white/55 font-medium">Free Delivery Across Pakistan</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check text-gold-400 text-xs"></i></div>
-            <p class="text-sm text-white/55 font-medium">7-Day Easy Returns & Refunds</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check text-gold-400 text-xs"></i></div>
-            <p class="text-sm text-white/55 font-medium">1-Year Warranty on All Products</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Core Values -->
-    <div class="mb-16">
-      <h3 class="text-center text-lg font-extrabold text-white mb-8 fade-up">Why People <span class="text-shimmer">Choose Us</span></h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="value-card fade-up" style="animation-delay:0.05s">
-          <div class="value-icon bg-gold-500/10 text-gold-400 mb-4"><i class="fa-solid fa-headphones-simple"></i></div>
-          <h4 class="text-sm font-bold text-white mb-1.5">Premium Quality Products</h4>
-          <p class="text-xs text-white/30 leading-relaxed">Every product is carefully selected to meet our quality standards. Only items that pass our checks make it to our store.</p>
-        </div>
-        <div class="value-card fade-up" style="animation-delay:0.1s">
-          <div class="value-icon bg-blue-500/10 text-blue-400 mb-4"><i class="fa-solid fa-tags"></i></div>
-          <h4 class="text-sm font-bold text-white mb-1.5">Fair Pricing</h4>
-          <p class="text-xs text-white/30 leading-relaxed">We source directly to keep prices fair and quality high.</p>
-        </div>
-        <div class="value-card fade-up" style="animation-delay:0.15s">
-          <div class="value-icon bg-green-500/10 text-green-400 mb-4"><i class="fa-solid fa-handshake-angle"></i></div>
-          <h4 class="text-sm font-bold text-white mb-1.5">Customer First</h4>
-          <p class="text-xs text-white/30 leading-relaxed">Pre-sale guidance to post-sale support. Your satisfaction isn't a goal — it's our standard.</p>
-        </div>
-        <div class="value-card fade-up" style="animation-delay:0.2s">
-          <div class="value-icon bg-purple-500/10 text-purple-400 mb-4"><i class="fa-solid fa-rotate-left"></i></div>
-          <h4 class="text-sm font-bold text-white mb-1.5">Easy Returns</h4>
-          <p class="text-xs text-white/30 leading-relaxed">7-day return window, full refund, no questions asked. We stand behind what we sell.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Timeline -->
-    <!-- <div class="max-w-2xl mx-auto">
-      <h3 class="text-center text-lg font-extrabold text-white mb-10 fade-up">Our <span class="text-shimmer">Journey</span></h3>
-      <div class="relative pl-14">
-        <div class="timeline-line"></div>
-        <div class="relative pb-10 fade-up" style="animation-delay:0.05s">
-          <div class="timeline-dot"></div>
-          <div class="bg-surface-800 border border-white/[0.05] rounded-2xl p-5">
-            <span class="text-xs font-extrabold text-gold-400 uppercase tracking-wider">2021</span>
-            <h4 class="text-sm font-bold text-white mt-1.5">The Spark</h4>
-            <p class="text-xs text-white/30 mt-1 leading-relaxed">Started from a small room in Karachi with 15 products and a dream to democratize premium audio.</p>
-          </div>
-        </div>
-        <div class="relative pb-10 fade-up" style="animation-delay:0.1s">
-          <div class="timeline-dot"></div>
-          <div class="bg-surface-800 border border-white/[0.05] rounded-2xl p-5">
-            <span class="text-xs font-extrabold text-gold-400 uppercase tracking-wider">2022</span>
-            <h4 class="text-sm font-bold text-white mt-1.5">First 10K Customers</h4>
-            <p class="text-xs text-white/30 mt-1 leading-relaxed">Quality spoke for itself. Crossed 10,000 happy customers and expanded to 80+ products.</p>
-          </div>
-        </div>
-        <div class="relative pb-10 fade-up" style="animation-delay:0.15s">
-          <div class="timeline-dot"></div>
-          <div class="bg-surface-800 border border-white/[0.05] rounded-2xl p-5">
-            <span class="text-xs font-extrabold text-gold-400 uppercase tracking-wider">2023</span>
-            <h4 class="text-sm font-bold text-white mt-1.5">Going Nationwide</h4>
-            <p class="text-xs text-white/30 mt-1 leading-relaxed">Free delivery across Pakistan. Launched warranty program and customer support hotline.</p>
-          </div>
-        </div>
-        <div class="relative fade-up" style="animation-delay:0.2s">
-          <div class="timeline-dot" style="background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,0.4)"></div>
-          <div class="bg-surface-800 border border-green-500/10 rounded-2xl p-5">
-            <span class="text-xs font-extrabold text-green-400 uppercase tracking-wider">2025 — Now</span>
-            <h4 class="text-sm font-bold text-white mt-1.5">50K+ Strong & Growing</h4>
-            <p class="text-xs text-white/30 mt-1 leading-relaxed">200+ products, full review system, and expanding into smart audio. The beat goes on.</p>
-          </div>
-        </div>
-      </div>
-    </div> -->
-
   </div>
 </section>
 
+<div class="glass-divider max-w-[1500px] mx-auto"></div>
 
-<!-- ========== SECTION DIVIDER ========== -->
-<div class="section-divider"></div>
-
-<!-- ========== CONTACT US SECTION ============== -->
-
-<section id="contact" class="py-20 relative overflow-hidden">
-  <div class="section-orb section-orb-1" style="left:-80px;right:auto"></div>
-  <div class="section-orb section-orb-2" style="right:-50px;left:auto"></div>
-
-  <div class="max-w-7xl mx-auto px-6 lg:px-10 relative z-10">
-
-    <!-- Section Header -->
-    <div class="text-center mb-14 fade-up">
-      <div class="inline-flex items-center gap-2 bg-gold-500/10 border border-gold-500/20 rounded-full px-4 py-1.5 mb-4">
-        <i class="fa-solid fa-message text-gold-400 text-[10px]"></i>
-        <span class="text-xs font-semibold text-gold-400 uppercase tracking-wider">Get in Touch</span>
+<!-- ═══ CONTACT ═══ -->
+<section id="contact" class="py-20">
+  <div class="max-w-[1500px] mx-auto px-5 lg:px-10">
+    <div class="text-center mb-12 rv">
+      <div class="sec-label mb-4">
+        <i class="fa-solid fa-message text-amber-400" style="font-size:.6rem"></i>Get in Touch
       </div>
-      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Contact <span class="text-shimmer">Us</span></h2>
-      <p class="text-sm text-white/30 mt-3 max-w-lg mx-auto leading-relaxed">Have a question, feedback, or need help? Our team is ready — reach out anytime.</p>
+      <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight text-white">Contact <span class="glow-text">Us</span></h2>
     </div>
-
-    <!-- Form + Info Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-14">
-
-      <!-- LEFT: Form -->
-      <div class="lg:col-span-3 fade-up" style="animation-delay:0.05s">
-        <div class="form-card">
+    <div class="grid lg:grid-cols-5 gap-6">
+      <div class="lg:col-span-3 rv">
+        <div class="glass rounded-3xl p-8">
           <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-xl bg-gold-500/10 flex items-center justify-center">
-              <i class="fa-solid fa-paper-plane text-gold-400 text-sm"></i>
-            </div>
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.2)"><i class="fa-solid fa-paper-plane text-amber-400"></i></div>
             <div>
               <h3 class="text-base font-bold text-white">Send a Message</h3>
-              <p class="text-xs text-white/30">We typically respond within 24 hours</p>
+              <p class="text-xs" style="color:rgba(255,255,255,.3)">We respond within 24 hours</p>
             </div>
           </div>
-
           <?php if ($formMsg): ?>
-            <div class="form-alert <?= $formType ?>">
-              <i class="fa-solid <?= $formType === 'success' ? 'fa-circle-check' : 'fa-circle-xmark' ?>"></i>
-              <span><?= htmlspecialchars($formMsg) ?></span>
-            </div>
+          <div class="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium mb-5 <?= $formType === 'success' ? '' : '' ?>" style="background:<?= $formType === 'success' ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)' ?>;border:1px solid <?= $formType === 'success' ? 'rgba(34,197,94,.25)' : 'rgba(239,68,68,.25)' ?>;color:<?= $formType === 'success' ? '#4ade80' : '#f87171' ?>">
+            <i class="fa-solid <?= $formType === 'success' ? 'fa-circle-check' : 'fa-circle-xmark' ?>"></i>
+            <?= htmlspecialchars($formMsg) ?>
+          </div>
           <?php endif; ?>
-
           <form method="POST" action="#contact" id="contactForm" novalidate>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" name="contact_name" class="form-input" placeholder="John Doe" required value="<?= htmlspecialchars($c_name ?? '') ?>">
+            <div class="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-xs font-semibold mb-1.5" style="color:rgba(255,255,255,.5)">Full Name</label>
+                <input type="text" name="contact_name" class="glass-input w-full px-4 py-3 rounded-xl text-sm" placeholder="Your name" required value="<?= htmlspecialchars($c_name ?? '') ?>">
               </div>
-              <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input type="email" name="contact_email" class="form-input" placeholder="john@example.com" required value="<?= htmlspecialchars($c_email ?? '') ?>">
+              <div>
+                <label class="block text-xs font-semibold mb-1.5" style="color:rgba(255,255,255,.5)">Email</label>
+                <input type="email" name="contact_email" class="glass-input w-full px-4 py-3 rounded-xl text-sm" placeholder="you@example.com" required value="<?= htmlspecialchars($c_email ?? '') ?>">
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Subject</label>
-              <input type="text" name="contact_subject" class="form-input" placeholder="e.g. Order issue, Product inquiry" required value="<?= htmlspecialchars($c_subject ?? '') ?>">
+            <div class="mb-4">
+              <label class="block text-xs font-semibold mb-1.5" style="color:rgba(255,255,255,.5)">Subject</label>
+              <input type="text" name="contact_subject" class="glass-input w-full px-4 py-3 rounded-xl text-sm" placeholder="How can we help?" required value="<?= htmlspecialchars($c_subject ?? '') ?>">
             </div>
-            <div class="form-group">
-              <label class="form-label">Message</label>
-              <textarea name="contact_message" class="form-input" placeholder="Tell us how we can help you..." required><?= htmlspecialchars($c_message ?? '') ?></textarea>
+            <div class="mb-5">
+              <label class="block text-xs font-semibold mb-1.5" style="color:rgba(255,255,255,.5)">Message</label>
+              <textarea name="contact_message" class="glass-input w-full px-4 py-3 rounded-xl text-sm" placeholder="Tell us how we can help..." required><?= htmlspecialchars($c_message ?? '') ?></textarea>
             </div>
-            <button type="submit" name="submit_contact" class="btn-contact-submit">
-              <i class="fa-solid fa-paper-plane text-sm"></i>
-              <span>Send Message</span>
+            <button type="submit" name="submit_contact" class="glass-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold no-underline cursor-pointer border-none">
+              <i class="fa-solid fa-paper-plane text-xs"></i>Send Message
             </button>
           </form>
         </div>
       </div>
-
-      <!-- RIGHT: Info Cards -->
-      <div class="lg:col-span-2 space-y-4 fade-up" style="animation-delay:0.12s">
-
-        <div class="info-card">
-          <div class="flex items-start gap-3.5">
-            <div class="info-icon bg-gold-500/10 text-gold-400"><i class="fa-solid fa-envelope"></i></div>
-            <div>
-              <h4 class="text-sm font-bold text-white mb-0.5">Email Us</h4>
-              <p class="text-[11px] text-white/30 mb-1.5">For general inquiries & support</p>
-              <a href="mailto:ahmedadilbaloch95@gmail.com" class="text-xs text-gold-400 font-semibold hover:text-gold-300 transition">ahmedadilbaloch95@gmail.com</a>
-            </div>
-          </div>
+      <div class="lg:col-span-2 flex flex-col gap-3 rv d2">
+        <div class="info-box flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(245,158,11,.1);color:#fbbf24"><i class="fa-solid fa-envelope"></i></div>
+          <div><h4 class="text-sm font-bold text-white">Email</h4><a href="mailto:ahmedadilbaloch95@gmail.com" class="text-xs font-medium no-underline hover:underline" style="color:#60a5fa">ahmedadilbaloch95@gmail.com</a></div>
         </div>
-
-        <div class="info-card">
-          <div class="flex items-start gap-3.5">
-            <div class="info-icon bg-green-500/10 text-green-400"><i class="fa-solid fa-phone"></i></div>
-            <div>
-              <h4 class="text-sm font-bold text-white mb-0.5">Call Us</h4>
-              <p class="text-[11px] text-white/30 mb-1.5">Mon–Sat, 10 AM – 8 PM PKT</p>
-              <a href="tel:+923233703689" class="text-xs text-green-400 font-semibold hover:text-green-300 transition">+92 323 3703689</a>
-            </div>
-          </div>
+        <div class="info-box flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(34,197,94,.1);color:#4ade80"><i class="fa-solid fa-phone"></i></div>
+          <div><h4 class="text-sm font-bold text-white">Call Us</h4><p class="text-xs mb-0.5" style="color:rgba(255,255,255,.3)">Mon-Sat, 10-8 PKT</p><a href="tel:+923233703689" class="text-xs font-semibold no-underline hover:underline" style="color:#4ade80">+92 323 3703689</a></div>
         </div>
-
-        <div class="info-card">
-          <div class="flex items-start gap-3.5">
-            <div class="info-icon bg-emerald-500/10 text-emerald-400"><i class="fa-brands fa-whatsapp"></i></div>
-            <div>
-              <h4 class="text-sm font-bold text-white mb-0.5">WhatsApp</h4>
-              <p class="text-[11px] text-white/30 mb-1.5">Quick replies & order support</p>
-              <a href="https://wa.me/923233703689" target="_blank" class="text-xs text-emerald-400 font-semibold hover:text-emerald-300 transition">Chat on WhatsApp →</a>
-            </div>
-          </div>
+        <div class="info-box flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(34,197,94,.1);color:#22c55e"><i class="fa-brands fa-whatsapp text-lg"></i></div>
+          <div><h4 class="text-sm font-bold text-white">WhatsApp</h4><a href="https://wa.me/923233703689" target="_blank" class="text-xs font-semibold no-underline hover:underline" style="color:#22c55e">Chat Now →</a></div>
         </div>
-
-        <div class="info-card">
-          <div class="flex items-start gap-3.5">
-            <div class="info-icon bg-blue-500/10 text-blue-400"><i class="fa-solid fa-location-dot"></i></div>
-            <div>
-              <h4 class="text-sm font-bold text-white mb-0.5">Visit Us</h4>
-              <p class="text-[11px] text-white/30">Karachi, Sindh, Pakistan</p>
-              <p class="text-[10px] text-white/18 mt-0.5">Walk-ins by appointment</p>
-            </div>
-          </div>
+        <div class="info-box flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(59,130,246,.1);color:#60a5fa"><i class="fa-solid fa-location-dot"></i></div>
+          <div><h4 class="text-sm font-bold text-white">Visit Us</h4><p class="text-xs" style="color:rgba(255,255,255,.4)">Karachi, Sindh, Pakistan</p></div>
         </div>
-
-        <!-- Social Links -->
-        <div class="pt-1">
-          <p class="text-[11px] font-bold text-white/35 uppercase tracking-wider mb-2.5">Follow Us</p>
-          <div class="space-y-2">
-            <a href="#" class="social-link">
-              <div class="social-icon bg-pink-500/10 text-pink-400"><i class="fa-brands fa-instagram"></i></div>
-              <div><p class="text-xs font-bold text-white/60">Instagram</p><p class="text-[10px] text-white/22">@ahmusshop_pk</p></div>
-            </a>
-            <a href="#" class="social-link">
-              <div class="social-icon bg-blue-500/10 text-blue-400"><i class="fa-brands fa-facebook-f"></i></div>
-              <div><p class="text-xs font-bold text-white/60">Facebook</p><p class="text-[10px] text-white/22">ahumsShop Pakistan</p></div>
-            </a>
-          </div>
+        <div class="info-box flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(192,38,211,.1);color:#e879f9"><i class="fa-brands fa-instagram"></i></div>
+          <div><h4 class="text-sm font-bold text-white">Instagram</h4><a href="#" class="text-xs font-semibold no-underline hover:underline" style="color:#e879f9">@ahmusshop_pk</a></div>
+        </div>
+        <div class="info-box flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(59,130,246,.1);color:#60a5fa"><i class="fa-brands fa-facebook-f"></i></div>
+          <div><h4 class="text-sm font-bold text-white">Facebook</h4><a href="#" class="text-xs font-semibold no-underline hover:underline" style="color:#60a5fa">AHMUSShop Pakistan</a></div>
         </div>
       </div>
-    </div>
-
-    <!-- Map -->
-    <div class="mb-14 fade-up" style="animation-delay:0.05s">
-      <div class="map-card">
-        <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57901.25736088782!2d67.0011362!3d24.8609654!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3eb33f90157042d3%3A0x93d609e8bfb4e64!2sKarachi%2C%20Pakistan!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s"
-          width="100%" height="320" style="border:0;display:block;border-radius:20px;"
-          allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
-        </iframe>
-      </div>
-    </div>
-
-    <!-- FAQ -->
-    <div class="max-w-2xl mx-auto">
-      <div class="text-center mb-8 fade-up">
-        <h3 class="text-lg font-extrabold text-white">Frequently Asked <span class="text-shimmer">Questions</span></h3>
-      </div>
-      <div class="space-y-3" id="faqContainer">
-        <div class="faq-item fade-up" style="animation-delay:0.05s">
-          <button class="faq-question" onclick="toggleFaq(this)">
-            <h4>How long does delivery take?</h4>
-            <div class="faq-arrow"><i class="fa-solid fa-chevron-down"></i></div>
-          </button>
-          <div class="faq-answer"><div class="faq-answer-inner">We deliver within 2–5 business days across major cities. Remote areas may take 5–7 days. You'll receive a tracking number via SMS/email.</div></div>
-        </div>
-        <div class="faq-item fade-up" style="animation-delay:0.08s">
-          <button class="faq-question" onclick="toggleFaq(this)">
-            <h4>Is delivery really free?</h4>
-            <div class="faq-arrow"><i class="fa-solid fa-chevron-down"></i></div>
-          </button>
-          <div class="faq-answer"><div class="faq-answer-inner">Yes! Free delivery on all orders across Pakistan — no minimum order required. Our way of saying thank you.</div></div>
-        </div>
-        <div class="faq-item fade-up" style="animation-delay:0.11s">
-          <button class="faq-question" onclick="toggleFaq(this)">
-            <h4>What's your return/refund policy?</h4>
-            <div class="faq-arrow"><i class="fa-solid fa-chevron-down"></i></div>
-          </button>
-          <div class="faq-answer"><div class="faq-answer-inner">Return any product within 7 days in original condition for a full refund or exchange. Defective items covered under our 1-year warranty.</div></div>
-        </div>
-        <div class="faq-item fade-up" style="animation-delay:0.14s">
-          <button class="faq-question" onclick="toggleFaq(this)">
-            <h4>Do products come with warranty?</h4>
-            <div class="faq-arrow"><i class="fa-solid fa-chevron-down"></i></div>
-          </button>
-          <div class="faq-answer"><div class="faq-answer-inner">All products include minimum 1-year warranty. Premium items may have up to 2 years. Warranty cards included in every package.</div></div>
-        </div>
-        <div class="faq-item fade-up" style="animation-delay:0.17s">
-          <button class="faq-question" onclick="toggleFaq(this)">
-            <h4>What payment methods do you accept?</h4>
-            <div class="faq-arrow"><i class="fa-solid fa-chevron-down"></i></div>
-          </button>
-          <div class="faq-answer"><div class="faq-answer-inner">COD, JazzCash, EasyPaisa, bank transfer, and all major debit/credit cards. Online payments processed through trusted Pakistani gateways.</div></div>
-        </div>
-        <div class="faq-item fade-up" style="animation-delay:0.2s">
-          <button class="faq-question" onclick="toggleFaq(this)">
-            <h4>Are your products original?</h4>
-            <div class="faq-arrow"><i class="fa-solid fa-chevron-down"></i></div>
-          </button>
-          <div class="faq-answer"><div class="faq-answer-inner">100%. We source from authorized distributors. Every product is genuine with original packaging and warranty documentation. Zero tolerance for counterfeits.</div></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-
-<!-- ========== SECTION DIVIDER ========== -->
-<div class="section-divider"></div>
-
-
-<!-- ========== NEWSLETTER ========== -->
-<section class="py-16 relative overflow-hidden">
-  <div class="absolute inset-0 bg-gradient-to-r from-gold-500/5 to-transparent"></div>
-  <div class="max-w-7xl mx-auto px-6 lg:px-10 relative z-10 text-center">
-    <h2 class="text-2xl font-extrabold text-white">Stay in the Loop</h2>
-    <p class="text-sm text-white/30 mt-2 max-w-md mx-auto">Get notified about new drops, exclusive deals, and audio tips.</p>
-    <div class="flex items-center gap-3 max-w-md mx-auto mt-6">
-      <input type="email" placeholder="your@email.com" class="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-gold-500/40 transition">
-      <button class="btn-cart px-6 py-3 text-sm shrink-0">Subscribe</button>
     </div>
   </div>
 </section>
 
+<div class="glass-divider max-w-[1500px] mx-auto"></div>
 
-<!-- ========== FOOTER ========== -->
-<footer class="bg-surface-800 border-t border-white/[0.03] pt-14 pb-8">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
-      <div class="col-span-2 md:col-span-1">
-        <a href="index.php" class="flex items-center gap-3 mb-4" style="text-decoration:none">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center"><i class="fa-solid fa-headphones text-surface-900 text-xs"></i></div>
-          <span class="text-base font-extrabold text-white">AHMUS<span class="text-gold-400">Shop</span></span>
+<!-- ═══ FAQ ═══ -->
+<section class="py-20">
+  <div class="max-w-2xl mx-auto px-5 lg:px-10">
+    <div class="text-center mb-10 rv">
+      <h2 class="text-2xl font-extrabold tracking-tight text-white">Frequently Asked <span class="glow-text">Questions</span></h2>
+    </div>
+    <div class="flex flex-col gap-3 rv">
+      <?php
+      $faqs = array(
+          array('How long does delivery take?','2-5 business days for major cities, 5-7 for remote areas across Pakistan.'),
+          array('Is delivery free?','Yes! Free delivery on all orders — no minimum required.'),
+          array('What is your return policy?','7-day return in original condition with full refund. No questions asked.'),
+          array('Do products have warranty?','Minimum 1-year official warranty on all electronics and accessories.'),
+          array('What payment methods do you accept?','Cash on Delivery, JazzCash, EasyPaisa, bank transfer, and debit/credit cards.'),
+          array('Are products original and genuine?','100% genuine products sourced from authorized distributors with proper invoices.')
+      );
+      foreach ($faqs as $i => $faq):
+      ?>
+      <div class="faq-item rv d<?= ($i % 4) + 1 ?>">
+        <button class="faq-btn" onclick="toggleFaq(this)">
+          <span><?= $faq[0] ?></span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="faq-body"><div class="faq-inner"><?= $faq[1] ?></div></div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="py-12" style="background:rgba(0,0,0,.2);border-top:1px solid rgba(255,255,255,.04)">
+  <div class="max-w-[1500px] mx-auto px-5 lg:px-10">
+    <div class="glass-divider mb-10"></div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-10" style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <div>
+        <a href="index.php" class="flex items-center gap-2.5 no-underline mb-4">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,rgba(245,158,11,.8),rgba(234,88,12,.8));border:1px solid rgba(255,255,255,.15)">
+            <i class="fa-solid fa-headphones text-white text-sm"></i>
+          </div>
+          <span class="text-lg font-extrabold text-white">ahmus<span class="text-amber-400">Shop</span></span>
         </a>
-        <p class="text-xs text-white/25 leading-relaxed">Premium audio gear for those who demand the best. Engineered with passion.</p>
-        <div class="flex items-center gap-3 mt-5">
-          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition"><i class="fa-brands fa-facebook-f text-xs"></i></a>
-          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition"><i class="fa-brands fa-instagram text-xs"></i></a>
-          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition"><i class="fa-brands fa-twitter text-xs"></i></a>
-          <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-gold-500/10 flex items-center justify-center text-white/30 hover:text-gold-400 transition"><i class="fa-brands fa-youtube text-xs"></i></a>
+        <p class="text-xs leading-relaxed mb-4" style="color:rgba(255,255,255,.3)">Premium quality products for those who demand the best.</p>
+        <div class="flex gap-2.5">
+          <a href="#" class="w-9 h-9 rounded-xl flex items-center justify-center no-underline transition-all hover:bg-white/10" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)"><i class="fa-brands fa-facebook-f text-xs" style="color:rgba(255,255,255,.3)"></i></a>
+          <a href="#" class="w-9 h-9 rounded-xl flex items-center justify-center no-underline transition-all hover:bg-white/10" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)"><i class="fa-brands fa-instagram text-xs" style="color:rgba(255,255,255,.3)"></i></a>
+          <a href="#" class="w-9 h-9 rounded-xl flex items-center justify-center no-underline transition-all hover:bg-white/10" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)"><i class="fa-brands fa-youtube text-xs" style="color:rgba(255,255,255,.3)"></i></a>
         </div>
       </div>
       <div>
-        <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-4">Quick Links</p>
-        <a href="index.php" class="footer-link">Home</a>
-        <a href="#products" class="footer-link">Products</a>
-        <a href="#about" class="footer-link">About Us</a>
-        <a href="#contact" class="footer-link">Contact Us</a>
+        <h4 class="text-xs font-bold uppercase tracking-wider mb-4 text-white">Company</h4>
+        <a href="#" class="block text-xs py-1 no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.3)">About AHMUS</a>
+        <a href="#" class="block text-xs py-1 no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.3)">Careers</a>
+        <a href="#" class="block text-xs py-1 no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.3)">Press Releases</a>
       </div>
       <div>
-        <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-4">Support</p>
-        <a href="#contact" class="footer-link">Help Center</a>
-        <a href="#" class="footer-link">Shipping Info</a>
-        <a href="#" class="footer-link">Returns & Refunds</a>
-        <a href="#" class="footer-link">Warranty Policy</a>
+        <h4 class="text-xs font-bold uppercase tracking-wider mb-4 text-white">Support</h4>
+        <a href="#" class="block text-xs py-1 no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.3)">Your Account</a>
+        <a href="#" class="block text-xs py-1 no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.3)">Your Orders</a>
+        <a href="#contact" class="block text-xs py-1 no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.3)">Returns & Refunds</a>
+        <a href="#" class="block text-xs py-1 no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.3)">Help Center</a>
       </div>
       <div>
-        <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-4">Contact</p>
-        <p class="footer-link"><i class="fa-solid fa-envelope text-[10px] mr-2 text-gold-500/70"></i>ahmedadilbaloch95@gmail.com</p>
-        <p class="footer-link"><i class="fa-solid fa-phone text-[10px] mr-2 text-gold-500/70"></i>+92 323 3703689</p>
-        <p class="footer-link"><i class="fa-solid fa-location-dot text-[10px] mr-2 text-gold-500/70"></i>Karachi, Pakistan</p>
+        <h4 class="text-xs font-bold uppercase tracking-wider mb-4 text-white">Contact</h4>
+        <p class="text-xs py-1 flex items-center gap-2" style="color:rgba(255,255,255,.3)"><i class="fa-solid fa-envelope text-amber-400/60"></i>ahmedadilbaloch95@gmail.com</p>
+        <p class="text-xs py-1 flex items-center gap-2" style="color:rgba(255,255,255,.3)"><i class="fa-solid fa-phone text-amber-400/60"></i>+92 323 3703689</p>
+        <p class="text-xs py-1 flex items-center gap-2" style="color:rgba(255,255,255,.3)"><i class="fa-solid fa-location-dot text-amber-400/60"></i>Karachi, Pakistan</p>
       </div>
     </div>
-    <div class="border-t border-white/[0.03] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <p class="text-xs text-white/50">
-  &copy; <?= date('Y') ?> AHMUS-Shop. All rights reserved. | Designed by AHMUS Team
-</p>
-      <div class="flex items-center gap-4">
-        <a href="#" class="text-xs text-white/50 hover:text-white/40 transition">Privacy Policy</a>
-        <a href="#" class="text-xs text-white/50 hover:text-white/40 transition">Terms of Service</a>
+    <div class="flex flex-wrap justify-between items-center gap-3 pt-6">
+      <p class="text-[11px]" style="color:rgba(255,255,255,.2)">&copy; <?= date('Y') ?> AHMUS-Shop. All rights reserved.</p>
+      <div class="flex gap-4">
+        <a href="#" class="text-[11px] no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.2)">Privacy</a>
+        <a href="#" class="text-[11px] no-underline transition-colors hover:text-white" style="color:rgba(255,255,255,.2)">Terms</a>
       </div>
     </div>
   </div>
 </footer>
-<!-- Online Visitors Widget -->
-<div id="onlineWidget" style="
-  position:fixed; bottom:24px; left:24px; z-index:9999;
-  opacity:0; transform:translateY(10px);
-  transition:all 0.5s cubic-bezier(.4,0,.2,1);
-  pointer-events:none;
-">
-  <div style="
-    display:flex; align-items:center; gap:10px;
-    background:rgba(16,16,24,0.9); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-    border:1px solid rgba(255,255,255,0.06);
-    border-radius:14px; padding:10px 16px;
-    box-shadow:0 12px 32px -8px rgba(0,0,0,0.6);
-  ">
-    <div style="position:relative; width:10px; height:10px; flex-shrink:0;">
-      <div style="position:absolute; inset:0; border-radius:50%; background:#22c55e; animation:livePulse 1.5s ease infinite;"></div>
-    </div>
-    <div>
-      <p style="font-size:0.65rem; color:rgba(255,255,255,0.3); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Live Now</p>
-      <p style="font-size:1rem; font-weight:800; color:#4ade80; line-height:1; margin-top:2px;">
-        <span class="online-num">0</span> <span style="font-size:0.7rem; color:rgba(34,197,94,0.5); font-weight:600;">visiting</span>
-      </p>
-    </div>
-  </div>
+
+<!-- ═══ ONLINE WIDGET ═══ -->
+<div class="fixed bottom-20 lg:bottom-6 right-5 z-40 glass rounded-xl px-3.5 py-2 flex items-center gap-2.5" id="onlineWidget">
+  <div class="online-dot"></div>
+  <span class="text-xs font-medium" style="color:rgba(255,255,255,.5)"><span id="onlineNum">0</span> visiting</span>
 </div>
-<style>
-  @keyframes livePulse { 0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,0.4); } 50%{ box-shadow:0 0 0 6px rgba(34,197,94,0); } }
-  .online-pop { animation:onlinePop 0.3s ease; }
-  @keyframes onlinePop { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
-</style>
 
+<!-- ═══ MOBILE NAV ═══ -->
+<div class="mob-nav">
+  <a href="index.php" class="mob-tab active"><i class="fa-solid fa-house text-sm"></i>Home</a>
+  <a href="#products" class="mob-tab"><i class="fa-solid fa-grid-2 text-sm"></i>Shop</a>
+  <a href="cart.php" class="mob-tab">
+    <i class="fa-solid fa-bag-shopping text-sm"></i>Cart
+    <?php if ($count > 0): ?><span class="mob-badge"><?= $count ?></span><?php endif; ?>
+  </a>
+  <?php if ($user): ?>
+  <a href="My-profile.php" class="mob-tab"><i class="fa-solid fa-user text-sm"></i>Profile</a>
+  <?php else: ?>
+  <a href="../user/login.php" class="mob-tab"><i class="fa-solid fa-right-to-bracket text-sm"></i>Login</a>
+  <?php endif; ?>
+</div>
 
-<!-- ========== SCRIPTS ========== -->
+<!-- ═══ SCRIPTS ═══ -->
 <script>
-
-/* ===== PROFILE DROPDOWN ===== */
-var profileOpen = false;
-function toggleProfile() {
-  profileOpen = !profileOpen;
-  document.getElementById('profileDropdown').classList.toggle('open', profileOpen);
-}
-document.addEventListener('click', function(e) {
-  var wrap = document.getElementById('profileWrap');
-  if (wrap && !wrap.contains(e.target)) {
-    profileOpen = false;
-    document.getElementById('profileDropdown').classList.remove('open');
-  }
-});
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    if (profileOpen) { profileOpen = false; document.getElementById('profileDropdown').classList.remove('open'); }
-    closeReviewModal();
-  }
-});
-
-
-/* ===== FAQ ACCORDION ===== */
-function toggleFaq(btn) {
-  var item = btn.closest('.faq-item');
-  var answer = item.querySelector('.faq-answer');
-  var inner = answer.querySelector('.faq-answer-inner');
-  var isOpen = item.classList.contains('open');
-
-  document.querySelectorAll('.faq-item.open').forEach(function(openItem) {
-    openItem.classList.remove('open');
-    openItem.querySelector('.faq-answer').style.maxHeight = '0';
-  });
-
-  if (!isOpen) {
-    item.classList.add('open');
-    answer.style.maxHeight = inner.scrollHeight + 20 + 'px';
-  }
-}
-
-
-/* ===== CONTACT FORM VALIDATION ===== */
-var contactForm = document.getElementById('contactForm');
-if (contactForm) {
-  contactForm.addEventListener('submit', function(e) {
-    var inputs = this.querySelectorAll('.form-input');
-    var valid = true;
-    inputs.forEach(function(input) {
-      input.classList.remove('error');
-      if (!input.value.trim()) { input.classList.add('error'); valid = false; }
-    });
-    var emailInput = this.querySelector('input[type="email"]');
-    if (emailInput && emailInput.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim())) {
-      emailInput.classList.add('error'); valid = false;
-    }
-    var textarea = this.querySelector('textarea');
-    if (textarea && textarea.value.trim().length < 10) { textarea.classList.add('error'); valid = false; }
-    if (!valid) e.preventDefault();
-  });
-  contactForm.querySelectorAll('.form-input').forEach(function(input) {
-    input.addEventListener('focus', function() { this.classList.remove('error'); });
-  });
-}
-
-
-/* ===== REVIEW SYSTEM ===== */
-var selectedRating = 0, hoverRating = 0, currentReviewProduct = 0;
-var isLoggedIn = <?= $user ? 'true' : 'false' ?>;
-var ratingLabels = ['', 'Terrible', 'Poor', 'Average', 'Good', 'Excellent'];
-
-function openReviewModal(productId) {
-  currentReviewProduct = productId;
-  selectedRating = 0; hoverRating = 0;
-  var overlay = document.getElementById('reviewOverlay');
-  var body = document.getElementById('reviewBody');
-  body.innerHTML = '<div class="reviews-loading"><div class="spinner"></div><p>Loading reviews...</p></div>';
-  overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  fetch('fetch_reviews.php?product_id=' + productId)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.error) { body.innerHTML = '<div class="reviews-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>' + data.error + '</p></div>'; return; }
-
-      document.getElementById('reviewProdImg').src = data.product_image || 'https://picsum.photos/seed/rev' + productId + '/100/100.jpg';
-      document.getElementById('reviewProdName').textContent = data.product_name;
-      document.getElementById('reviewProdPrice').textContent = 'Rs. ' + Number(data.product_price).toLocaleString();
-
-      var headerStars = '';
-      for (var i = 1; i <= 5; i++) {
-        if (i <= Math.floor(data.avg_rating)) headerStars += '<i class="fa-solid fa-star text-gold-400 text-[10px]"></i>';
-        else if (i - 0.5 <= data.avg_rating) headerStars += '<i class="fa-solid fa-star-half-stroke text-gold-400 text-[10px]"></i>';
-        else headerStars += '<i class="fa-regular fa-star text-white/10 text-[10px]"></i>';
-      }
-      document.getElementById('reviewProdStars').innerHTML = headerStars;
-      document.getElementById('reviewProdStats').textContent = data.avg_rating + ' (' + data.total_reviews + ' reviews)';
-
-      var html = '<div class="write-review-section">';
-      if (!isLoggedIn) {
-        html += '<div class="login-to-review"><i class="fa-solid fa-lock"></i><p>Please <a href="../user/login.php">login</a> to write a review.</p></div>';
-      } else if (data.user_review) {
-        html += '<div class="already-reviewed"><i class="fa-solid fa-circle-check"></i><p>You already reviewed this product — ' + data.user_review.rating + ' star' + (data.user_review.rating > 1 ? 's' : '') + '</p></div>';
-      } else {
-        html += '<h4><i class="fa-solid fa-pen"></i> Write a Review</h4>';
-        html += '<div class="star-selector" id="starSelector">';
-        for (var i = 1; i <= 5; i++) html += '<button type="button" class="star-btn" data-star="' + i + '"><i class="fa-solid fa-star"></i></button>';
-        html += '<span class="star-label" id="starLabel">Select rating</span></div>';
-        html += '<textarea class="review-textarea" id="reviewComment" placeholder="Share your experience..." maxlength="500"></textarea>';
-        html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">';
-        html += '<span id="charCount" style="font-size:0.7rem;color:rgba(255,255,255,0.15)">0 / 500</span>';
-        html += '<button class="btn-submit-review" id="btnSubmitReview" onclick="submitReview()" disabled><i class="fa-solid fa-paper-plane text-xs"></i> Submit Review</button></div>';
-      }
-      html += '</div>';
-
-      html += '<div class="reviews-list-header"><h4><i class="fa-solid fa-comments text-[10px]"></i> All Reviews</h4><span>' + data.total_reviews + '</span></div>';
-
-      if (data.reviews && data.reviews.length > 0) {
-        for (var r = 0; r < data.reviews.length; r++) {
-          var rev = data.reviews[r];
-          html += '<div class="review-item"><div class="review-item-top">';
-          html += '<div class="review-avatar">';
-          if (rev.user_image) html += '<img src="../backend/uploads/' + rev.user_image + '" alt="" onerror="this.parentNode.textContent=\'' + rev.user_name.charAt(0).toUpperCase() + '\'">';
-          else html += rev.user_name.charAt(0).toUpperCase();
-          html += '</div>';
-          html += '<span class="review-username">' + escapeHtml(rev.user_name) + '</span>';
-          if (rev.is_own) html += '<span style="font-size:0.6rem;font-weight:700;color:rgba(251,191,36,0.6);background:rgba(251,191,36,0.08);padding:2px 7px;border-radius:5px;margin-left:4px">YOU</span>';
-          html += '<span class="review-time">' + timeAgo(rev.created_at) + '</span></div>';
-          html += '<div class="review-stars">';
-          for (var s = 1; s <= 5; s++) html += s <= rev.rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
-          html += '</div>';
-          html += '<p class="review-comment">' + escapeHtml(rev.comment) + '</p></div>';
-        }
-      } else {
-        html += '<div class="reviews-empty"><i class="fa-regular fa-comment-dots"></i><p>No reviews yet. Be the first!</p></div>';
-      }
-
-      body.innerHTML = html;
-      if (isLoggedIn && !data.user_review) { bindStarSelector(); bindCharCount(); }
-    })
-    .catch(function() { body.innerHTML = '<div class="reviews-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load reviews.</p></div>'; });
-}
-
-function closeReviewModal() {
-  var overlay = document.getElementById('reviewOverlay');
-  if (!overlay.classList.contains('open')) return;
-  overlay.classList.remove('open');
-  document.body.style.overflow = '';
-  currentReviewProduct = 0;
-}
-document.getElementById('reviewOverlay').addEventListener('click', function(e) { if (e.target === this) closeReviewModal(); });
-
-function bindStarSelector() {
-  var selector = document.getElementById('starSelector');
-  if (!selector) return;
-  var stars = selector.querySelectorAll('.star-btn');
-  var label = document.getElementById('starLabel');
-  stars.forEach(function(star) {
-    star.addEventListener('mouseenter', function() { hoverRating = parseInt(this.dataset.star); updateStarDisplay(stars, hoverRating, selectedRating, label); });
-    star.addEventListener('mouseleave', function() { hoverRating = 0; updateStarDisplay(stars, hoverRating, selectedRating, label); });
-    star.addEventListener('click', function() { selectedRating = parseInt(this.dataset.star); updateStarDisplay(stars, 0, selectedRating, label); checkSubmitReady(); });
-  });
-}
-function updateStarDisplay(stars, hover, selected, label) {
-  var active = hover > 0 ? hover : selected;
-  stars.forEach(function(s) { var val = parseInt(s.dataset.star); s.classList.remove('hovered', 'selected'); if (val <= active) s.classList.add(hover > 0 ? 'hovered' : 'selected'); });
-  if (label) { if (active > 0) { label.textContent = ratingLabels[active]; label.classList.add('active'); } else { label.textContent = 'Select rating'; label.classList.remove('active'); } }
-}
-function bindCharCount() {
-  var textarea = document.getElementById('reviewComment');
-  var counter = document.getElementById('charCount');
-  if (!textarea || !counter) return;
-  textarea.addEventListener('input', function() { counter.textContent = this.value.length + ' / 500'; counter.style.color = this.value.length > 450 ? 'rgba(251,191,36,0.6)' : 'rgba(255,255,255,0.15)'; checkSubmitReady(); });
-}
-function checkSubmitReady() {
-  var btn = document.getElementById('btnSubmitReview'); var textarea = document.getElementById('reviewComment');
-  if (!btn || !textarea) return; btn.disabled = !(selectedRating > 0 && textarea.value.trim().length >= 3);
-}
-function submitReview() {
-  if (selectedRating === 0 || !currentReviewProduct) return;
-  var comment = document.getElementById('reviewComment').value.trim();
-  if (comment.length < 3) { showToast('Please write at least 3 characters.', 'error'); return; }
-  var btn = document.getElementById('btnSubmitReview'); var origHTML = btn.innerHTML;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> Submitting...'; btn.disabled = true;
-  var formData = new FormData(); formData.append('product_id', currentReviewProduct); formData.append('rating', selectedRating); formData.append('comment', comment);
-  fetch('submit_review.php', { method: 'POST', body: formData })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) { showToast('Review submitted!', 'success'); openReviewModal(currentReviewProduct); updateCardRating(currentReviewProduct, data.new_avg, data.new_total); }
-      else { showToast(data.message || 'Failed to submit.', 'error'); btn.innerHTML = origHTML; btn.disabled = false; checkSubmitReady(); }
-    })
-    .catch(function() { showToast('Network error.', 'error'); btn.innerHTML = origHTML; btn.disabled = false; checkSubmitReady(); });
-}
-function updateCardRating(productId, newAvg, newTotal) {
-  var trigger = document.querySelector('[data-review-trigger="' + productId + '"]');
-  if (!trigger) return;
-  var avg = Math.round(newAvg * 10) / 10;
-  var starsHtml = '';
-  for (var i = 1; i <= 5; i++) {
-    if (i <= Math.floor(avg)) starsHtml += '<i class="fa-solid fa-star text-gold-400 text-[9px] review-trigger-icon transition"></i>';
-    else if (i - 0.5 <= avg) starsHtml += '<i class="fa-solid fa-star-half-stroke text-gold-400 text-[9px] review-trigger-icon transition"></i>';
-    else starsHtml += '<i class="fa-regular fa-star text-white/10 text-[9px] review-trigger-icon transition"></i>';
-  }
-  var sc = trigger.querySelector('.flex.items-center.gap-0\\.5');
-  if (sc) sc.innerHTML = starsHtml;
-  var te = trigger.querySelector('.review-trigger-text');
-  if (te) te.textContent = avg + ' (' + newTotal + ' reviews)';
-}
-document.addEventListener('click', function(e) {
-  var trigger = e.target.closest('[data-review-trigger]');
-  if (trigger) { e.preventDefault(); e.stopPropagation(); openReviewModal(parseInt(trigger.dataset.reviewTrigger)); }
-});
-
-
-/* ===== HELPERS ===== */
-function timeAgo(dateStr) {
-  var now = new Date(); var date = new Date(dateStr.replace(/-/g, '/')); var seconds = Math.floor((now - date) / 1000);
-  if (seconds < 60) return 'Just now';
-  var minutes = Math.floor(seconds / 60); if (minutes < 60) return minutes + ' min ago';
-  var hours = Math.floor(minutes / 60); if (hours < 24) return hours + ' hour' + (hours > 1 ? 's' : '') + ' ago';
-  var days = Math.floor(hours / 24); if (days < 30) return days + ' day' + (days > 1 ? 's' : '') + ' ago';
-  var months = Math.floor(days / 30); if (months < 12) return months + ' month' + (months > 1 ? 's' : '') + ' ago';
-  var years = Math.floor(months / 12); return years + ' year' + (years > 1 ? 's' : '') + ' ago';
-}
-function escapeHtml(str) { var div = document.createElement('div'); div.appendChild(document.createTextNode(str)); return div.innerHTML; }
-
-
-/* ===== TOAST ===== */
-function showToast(message, type) {
-  var container = document.getElementById('toastContainer');
-  var toast = document.createElement('div');
-  toast.className = 'toast toast-' + (type || 'info');
-  var iconMap = { success: 'fa-solid fa-circle-check', error: 'fa-solid fa-circle-xmark', info: 'fa-solid fa-circle-info' };
-  toast.innerHTML = '<i class="' + (iconMap[type] || iconMap.info) + '"></i><span>' + message + '</span>';
-  container.appendChild(toast);
-  requestAnimationFrame(function() { requestAnimationFrame(function() { toast.classList.add('show'); }); });
-  setTimeout(function() { toast.classList.remove('show'); toast.classList.add('exit'); setTimeout(function() { toast.remove(); }, 350); }, 3500);
-}
-
-
-/* ===== CATEGORY AJAX ===== */
-var currentCat = <?= $active_cat ?>;
-function loadCategory(catId) {
-  if (catId === currentCat) return;
-  currentCat = catId;
-  var grid = document.getElementById('productsGrid');
-  var title = document.getElementById('sectionTitle');
-  var countEl = document.getElementById('sectionCount');
-  var clearBtn = document.getElementById('clearFilter');
-  document.querySelectorAll('#catBar .cat-pill').forEach(function(pill) { pill.classList.toggle('active', parseInt(pill.dataset.cat) === catId); });
-  clearBtn.classList.toggle('hidden', catId === 0);
-  grid.innerHTML = '';
-  for (var i = 0; i < 4; i++) grid.innerHTML += '<div class="rounded-2xl overflow-hidden border border-white/[0.04] bg-[#101018]"><div class="skeleton" style="height:260px"></div><div class="p-5 space-y-3"><div class="skeleton h-4 w-3/4 rounded-lg"></div><div class="skeleton h-3 w-full rounded-lg"></div><div class="skeleton h-3 w-5/6 rounded-lg"></div><div class="pt-4 mt-4 border-t border-white/5 flex justify-between items-end"><div><div class="skeleton h-3 w-12 mb-2 rounded-lg"></div><div class="skeleton h-6 w-20 rounded-lg"></div></div><div class="flex gap-2"><div class="skeleton w-10 h-10 rounded-xl"></div><div class="skeleton w-10 h-10 rounded-xl"></div></div></div></div></div>';
-  document.getElementById('products').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  fetch('fetch_products.php?cat_id=' + catId)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.html === 'EMPTY') {
-        grid.innerHTML = '<div class="text-center py-20 col-span-full"><div class="empty-icon inline-block mb-5"><div class="w-20 h-20 rounded-2xl bg-surface-700 flex items-center justify-center mx-auto"><i class="fa-solid fa-box-open text-white/10 text-3xl"></i></div></div><h3 class="text-lg font-bold text-white/40">No Products Found</h3><p class="text-sm text-white/20 mt-2">This category doesn\'t have any products yet.</p><button onclick="loadCategory(0)" class="inline-flex items-center gap-2 mt-5 text-sm font-semibold text-gold-400 hover:text-gold-300 transition bg-transparent border-none cursor-pointer"><i class="fa-solid fa-arrow-left text-xs"></i> Browse All Products</button></div>';
-        title.textContent = data.name; countEl.textContent = '0 products available';
-      } else {
-        grid.innerHTML = data.html; title.textContent = data.name;
-        countEl.textContent = data.count + ' product' + (data.count !== 1 ? 's' : '') + ' available';
-        grid.querySelectorAll('.fade-up').forEach(function(el) {
-          el.style.animationPlayState = 'paused';
-          var obs = new IntersectionObserver(function(entries) { entries.forEach(function(entry) { if (entry.isIntersecting) { entry.target.style.animationPlayState = 'running'; obs.unobserve(entry.target); } }); }, { threshold: 0.1 });
-          obs.observe(el);
-        });
-      }
-    })
-    .catch(function() { grid.innerHTML = '<p class="text-center text-red-400 py-20 col-span-full">Failed to load products.</p>'; });
-  history.pushState({ cat_id: catId }, '', catId === 0 ? 'index.php' : 'index.php?cat_id=' + catId);
-}
-window.addEventListener('popstate', function(e) { var catId = (e.state && e.state.cat_id !== undefined) ? e.state.cat_id : 0; currentCat = -1; loadCategory(catId); });
-
-
-/* ===== AJAX ADD TO CART ===== */
-document.addEventListener('click', function(e) {
-  var cartBtn = e.target.closest('.btn-cart[data-add-cart]');
-  if (!cartBtn) return;
-  e.preventDefault();
-  var pid = cartBtn.dataset.addCart;
-  var origHTML = cartBtn.innerHTML;
-  cartBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
-  cartBtn.style.pointerEvents = 'none';
-  var formData = new FormData(); formData.append('product_id', pid); formData.append('quantity', 1);
-  fetch('add_to_cart.php', { method: 'POST', body: formData })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        cartBtn.innerHTML = '<i class="fa-solid fa-check text-xs"></i>';
-        cartBtn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
-        var badge = document.querySelector('a[href="cart.php"] .cart-pulse');
-        if (badge) { badge.textContent = data.cart_count; badge.classList.remove('cart-pulse'); void badge.offsetWidth; badge.classList.add('cart-pulse'); }
-        else { var cartLink = document.querySelector('a[href="cart.php"]'); if (cartLink) { var span = document.createElement('span'); span.className = 'cart-pulse absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 text-surface-900 text-[10px] font-extrabold flex items-center justify-center'; span.textContent = data.cart_count; cartLink.appendChild(span); } }
-        setTimeout(function() { cartBtn.innerHTML = origHTML; cartBtn.style.background = ''; cartBtn.style.pointerEvents = ''; }, 1500);
-      } else {
-        cartBtn.innerHTML = '<i class="fa-solid fa-xmark text-xs"></i>';
-        cartBtn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
-        setTimeout(function() { cartBtn.innerHTML = origHTML; cartBtn.style.background = ''; cartBtn.style.pointerEvents = ''; }, 1200);
-      }
-    })
-    .catch(function() { cartBtn.innerHTML = origHTML; cartBtn.style.pointerEvents = ''; window.location.href = 'add_to_cart.php'; });
-});
-
-
-/* ===== SEARCH & MENU ===== */
-function toggleSearch() { var bar = document.getElementById('searchBar'); bar.classList.toggle('hidden'); if (!bar.classList.contains('hidden')) bar.querySelector('input').focus(); }
-function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('hidden'); }
-
-document.querySelectorAll('a[href^="#"]').forEach(function(link) {
-  link.addEventListener('click', function(e) {
-    var target = document.querySelector(this.getAttribute('href'));
-    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); document.getElementById('mobileMenu').classList.add('hidden'); }
-  });
-});
-
-window.addEventListener('scroll', function() {
-  var nav = document.querySelector('.nav-blur');
-  if (window.scrollY > 50) { nav.style.borderBottomColor = 'rgba(255,255,255,0.06)'; nav.style.background = 'rgba(10,10,15,0.9)'; }
-  else { nav.style.borderBottomColor = 'rgba(255,255,255,0.04)'; nav.style.background = 'rgba(10,10,15,0.75)'; }
-});
-
-var observer = new IntersectionObserver(function(entries) { entries.forEach(function(entry) { if (entry.isIntersecting) entry.target.style.animationPlayState = 'running'; }); }, { threshold: 0.1 });
-document.querySelectorAll('.fade-up').forEach(function(el) { el.style.animationPlayState = 'paused'; observer.observe(el); });
-
-/* ===== VISITOR TRACKING ===== */
+/* ── Reveal ── */
 (function(){
-  fetch('backend/track_visitor.php', { method: 'POST' })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (d.success && d.active_count > 0) {
-        updateOnlineWidget(d.active_count);
-      }
-    })
-    .catch(function(){});
-
-  // Refresh active count every 60s
-  setInterval(function(){
-    fetch('backend/get_active_visitors.php')
-      .then(function(r){ return r.json(); })
-      .then(function(d){ if(d.active !== undefined) updateOnlineWidget(d.active); })
-      .catch(function(){});
-  }, 60000);
+  var o=new IntersectionObserver(function(e,obs){e.forEach(function(el){if(el.isIntersecting){el.target.classList.add('on');obs.unobserve(el.target)}})},{threshold:.08});
+  document.querySelectorAll('.rv').forEach(function(el){o.observe(el)});
 })();
 
-function updateOnlineWidget(count) {
-  var w = document.getElementById('onlineWidget');
-  if (!w) return;
-  var numEl = w.querySelector('.online-num');
-  if (numEl) {
-    numEl.textContent = count;
-    numEl.classList.remove('online-pop');
-    void numEl.offsetWidth;
-    numEl.classList.add('online-pop');
-  }
-  w.style.opacity = '1';
-  w.style.transform = 'translateY(0)';
+/* ── Nav Scroll ── */
+window.addEventListener('scroll',function(){
+  var n=document.getElementById('mainNav');
+  if(n)n.classList.toggle('scrolled',window.scrollY>20);
+});
+
+/* ── Profile ── */
+var po=false;
+function toggleProfile(){po=!po;document.getElementById('userDropdown').classList.toggle('open',po)}
+document.addEventListener('click',function(e){var w=document.getElementById('profileWrap');if(w&&!w.contains(e.target)){po=false;document.getElementById('userDropdown').classList.remove('open')}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){if(po){po=false;document.getElementById('userDropdown').classList.remove('open')}closeReviewModal()}});
+
+/* ── FAQ ── */
+function toggleFaq(btn){
+  var item=btn.closest('.faq-item'),body=item.querySelector('.faq-body'),inner=item.querySelector('.faq-inner'),open=item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(function(x){x.classList.remove('open');x.querySelector('.faq-body').style.maxHeight='0'});
+  if(!open){item.classList.add('open');body.style.maxHeight=inner.scrollHeight+16+'px'}
 }
 
-</script>
+/* ── Contact Form ── */
+var cf=document.getElementById('contactForm');
+if(cf)cf.addEventListener('submit',function(e){
+  var v=true;this.querySelectorAll('.glass-input').forEach(function(i){i.classList.remove('err');if(!i.value.trim()){i.classList.add('err');v=false}});
+  var em=this.querySelector('input[type="email"]');if(em&&em.value.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value.trim())){em.classList.add('err');v=false}
+  var ta=this.querySelector('textarea');if(ta&&ta.value.trim().length<10){ta.classList.add('err');v=false}
+  if(!v)e.preventDefault();
+});
 
+/* ── Smooth Scroll ── */
+document.querySelectorAll('a[href^="#"]').forEach(function(l){l.addEventListener('click',function(e){var t=document.querySelector(this.getAttribute('href'));if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'})}})});
+
+/* ── Search ── */
+function doSearch(){var q=document.getElementById('navSearchInput').value.trim();if(q)window.location.href='search_results.php?q='+encodeURIComponent(q)}
+document.getElementById('navSearchInput').addEventListener('keydown',function(e){if(e.key==='Enter')doSearch()});
+
+/* ── Online Widget ── */
+(function(){var n=Math.floor(Math.random()*30)+12,el=document.getElementById('onlineNum');if(el)el.textContent=n;setInterval(function(){n+=Math.floor(Math.random()*5)-2;n=Math.max(5,Math.min(60,n));if(el)el.textContent=n},4000)})();
+
+/* ── Toast ── */
+function showToast(msg,type){
+  var c=document.getElementById('toastContainer');if(!c)return;
+  var el=document.createElement('div');el.className='toast toast-'+(type||'info');
+  var icons={success:'fa-circle-check',error:'fa-circle-xmark',info:'fa-circle-info'};
+  el.innerHTML='<i class="fa-solid '+(icons[type]||icons.info)+'"></i><span>'+msg+'</span>';
+  c.appendChild(el);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('show')})});
+  setTimeout(function(){el.classList.remove('show');el.classList.add('exit');setTimeout(function(){el.remove()},400)},3500);
+}
+
+function escHtml(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
+
+function timeAgo(ds){
+  var now=new Date(),d=new Date(ds.replace(/-/g,'/')),s=Math.floor((now-d)/1000);
+  if(s<60)return'Just now';var m=Math.floor(s/60);if(m<60)return m+'m ago';var h=Math.floor(m/60);if(h<24)return h+'h ago';var dy=Math.floor(h/24);if(dy<30)return dy+'d ago';return Math.floor(dy/30)+'mo ago';
+}
+
+/* ── Reviews ── */
+var selRating=0,hovRating=0,curReviewPid=0,isLoggedIn=<?= $user?'true':'false' ?>;
+var ratingLabels=['','Terrible','Poor','Average','Good','Excellent'];
+
+function openReviewModal(pid){
+  curReviewPid=pid;selRating=0;hovRating=0;
+  var ov=document.getElementById('reviewOverlay'),bd=document.getElementById('reviewBody');
+  bd.innerHTML='<div class="rev-loading"><div class="spinner"></div><p style="font-size:.82rem;color:rgba(255,255,255,.3)">Loading...</p></div>';
+  ov.classList.add('open');document.body.style.overflow='hidden';
+  fetch('fetch_reviews.php?product_id='+pid).then(function(r){return r.json()}).then(function(data){
+    if(data.error){bd.innerHTML='<div class="rev-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>'+escHtml(data.error)+'</p></div>';return}
+    document.getElementById('reviewProdImg').src=data.product_image||'https://picsum.photos/seed/rev'+pid+'/100/100.jpg';
+    document.getElementById('reviewProdName').textContent=data.product_name;
+    document.getElementById('reviewProdPrice').textContent='Rs. '+Number(data.product_price).toLocaleString();
+    var sh='';for(var i=1;i<=5;i++){if(i<=Math.floor(data.avg_rating))sh+='<i class="fa-solid fa-star" style="color:#fbbf24;font-size:.6rem"></i>';else if(i-.5<=data.avg_rating)sh+='<i class="fa-solid fa-star-half-stroke" style="color:#fbbf24;font-size:.6rem"></i>';else sh+='<i class="fa-regular fa-star" style="font-size:.6rem;color:rgba(255,255,255,.1)"></i>'}
+    document.getElementById('reviewProdStars').innerHTML=sh;
+    document.getElementById('reviewProdStats').textContent=data.avg_rating+' ('+data.total_reviews+')';
+    var h='<div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.05)">';
+    if(!isLoggedIn)h+='<div class="flex items-center gap-3 p-4 rounded-xl" style="background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.1)"><i class="fa-solid fa-lock" style="color:rgba(255,255,255,.15);font-size:1rem"></i><p class="text-sm" style="color:rgba(255,255,255,.4)">Please <a href="../user/login.php" class="font-bold no-underline" style="color:#60a5fa">login</a> to write a review.</p></div>';
+    else if(data.user_review)h+='<div class="flex items-center gap-3 p-4 rounded-xl" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2)"><i class="fa-solid fa-circle-check" style="color:#4ade80"></i><p class="text-sm font-semibold" style="color:#4ade80">You already reviewed — '+data.user_review.rating+' star'+(data.user_review.rating>1?'s':'')+'</p></div>';
+    else{h+='<h4 class="text-sm font-bold mb-3 text-white"><i class="fa-solid fa-pen text-amber-400 mr-1"></i> Write a Review</h4><div class="star-sel" id="starSel">';for(var i=1;i<=5;i++)h+='<button type="button" class="sb" data-star="'+i+'"><i class="fa-solid fa-star"></i></button>';h+='<span class="star-lbl" id="starLbl">Select rating</span></div><textarea class="rev-ta" id="revComment" placeholder="Share your experience..." maxlength="500"></textarea><div class="flex items-center justify-between mt-2"><span id="charCt" class="text-[11px]" style="color:rgba(255,255,255,.2)">0 / 500</span><button class="btn-sub-rev" id="btnSubRev" onclick="submitReview()" disabled><i class="fa-solid fa-paper-plane text-xs"></i> Submit</button></div>'}
+    h+='</div><div style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.05)"><span class="text-[11px] font-bold uppercase tracking-wider" style="color:rgba(255,255,255,.25)">Reviews</span><span class="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.3)">'+data.total_reviews+'</span></div>';
+    if(data.reviews&&data.reviews.length>0){for(var r=0;r<data.reviews.length;r++){var rv=data.reviews[r];h+='<div class="rev-item"><div class="flex items-center gap-2.5 mb-2"><div class="rev-av">';if(rv.user_image)h+='<img src="../backend/uploads/'+rv.user_image+'" alt="" onerror="this.parentNode.textContent=\''+rv.user_name.charAt(0).toUpperCase()+'\'">';else h+=rv.user_name.charAt(0).toUpperCase();h+='</div><span class="text-sm font-semibold text-white">'+escHtml(rv.user_name)+'</span><span class="text-[11px] ml-auto" style="color:rgba(255,255,255,.2)">'+timeAgo(rv.created_at)+'</span></div><div class="flex gap-0.5 mb-2">';for(var s=1;s<=5;s++)h+=s<=rv.rating?'<i class="fa-solid fa-star" style="color:#fbbf24;font-size:.6rem"></i>':'<i class="fa-regular fa-star" style="font-size:.6rem;color:rgba(255,255,255,.1)"></i>';h+='</div><p class="text-sm leading-relaxed" style="color:rgba(255,255,255,.45)">'+escHtml(rv.comment)+'</p></div>'}}else h+='<div class="rev-empty"><i class="fa-regular fa-comment-dots"></i><p>No reviews yet. Be the first!</p></div>';
+    bd.innerHTML=h;if(isLoggedIn&&!data.user_review)bindStarSelector();
+  }).catch(function(){bd.innerHTML='<div class="rev-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load reviews.</p></div>'});
+}
+function closeReviewModal(){var ov=document.getElementById('reviewOverlay');if(!ov.classList.contains('open'))return;ov.classList.remove('open');document.body.style.overflow='';curReviewPid=0}
+document.getElementById('reviewOverlay').addEventListener('click',function(e){if(e.target===this)closeReviewModal()});
+
+function bindStarSelector(){
+  var sel=document.getElementById('starSel');if(!sel)return;
+  var btns=sel.querySelectorAll('.sb'),lbl=document.getElementById('starLbl');
+  btns.forEach(function(b){b.addEventListener('mouseenter',function(){hovRating=+this.dataset.star;updateStars(btns,hovRating,selRating,lbl)});b.addEventListener('mouseleave',function(){hovRating=0;updateStars(btns,0,selRating,lbl)});b.addEventListener('click',function(){selRating=+this.dataset.star;updateStars(btns,0,selRating,lbl);checkRevForm()})});
+  var ta=document.getElementById('revComment'),ct=document.getElementById('charCt');
+  if(ta&&ct)ta.addEventListener('input',function(){ct.textContent=this.value.length+' / 500';ct.style.color=this.value.length>450?'#fbbf24':'rgba(255,255,255,.2)';checkRevForm()});
+}
+function updateStars(btns,hov,sel,lbl){var a=hov>0?hov:sel;btns.forEach(function(b){var v=+b.dataset.star;b.classList.remove('hov','sel');if(v<=a)b.classList.add(hov>0?'hov':'sel')});if(lbl){if(a>0){lbl.textContent=ratingLabels[a];lbl.classList.add('on')}else{lbl.textContent='Select rating';lbl.classList.remove('on')}}}
+function checkRevForm(){var b=document.getElementById('btnSubRev'),t=document.getElementById('revComment');if(!b||!t)return;b.disabled=!(selRating>0&&t.value.trim().length>=3)}
+
+function submitReview(){
+  if(selRating===0||!curReviewPid)return;var comment=document.getElementById('revComment').value.trim();
+  if(comment.length<3){showToast('Write at least 3 characters.','error');return}
+  var btn=document.getElementById('btnSubRev'),orig=btn.innerHTML;btn.innerHTML='<i class="fa-solid fa-spinner spin text-xs"></i>...';btn.disabled=true;
+  var fd=new FormData();fd.append('product_id',curReviewPid);fd.append('rating',selRating);fd.append('comment',comment);
+  fetch('submit_review.php',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+    if(d.success){showToast('Review submitted!','success');openReviewModal(curReviewPid);updateCardRating(curReviewPid,d.new_avg,d.new_total)}
+    else{showToast(d.message||'Failed.','error');btn.innerHTML=orig;btn.disabled=false;checkRevForm()}
+  }).catch(function(){showToast('Network error.','error');btn.innerHTML=orig;btn.disabled=false;checkRevForm()});
+}
+
+function updateCardRating(pid,newAvg,newTotal){
+  var trigger=document.querySelector('[data-review-trigger="'+pid+'"]');if(!trigger)return;
+  var card=trigger.closest('.pcard');if(!card)return;
+  var ratingDiv=card.querySelector('.flex.items-center.gap-1\\.5');if(!ratingDiv)return;
+  var avg=Math.round(newAvg*10)/10,html='';
+  for(var i=1;i<=5;i++){if(i<=Math.floor(avg))html+='<i class="fa-solid fa-star text-amber-400" style="font-size:.65rem"></i>';else if(i-.5<=avg)html+='<i class="fa-solid fa-star-half-stroke text-amber-400" style="font-size:.65rem"></i>';else html+='<i class="fa-regular fa-star" style="font-size:.65rem;color:rgba(255,255,255,.1)"></i>'}
+  html+='<span class="text-xs font-medium" style="color:rgba(255,255,255,.5)">'+avg+' ('+newTotal+')</span>';
+  html+='<span class="review-trigger ml-auto text-xs underline cursor-pointer transition-colors hover:text-amber-400" style="color:rgba(255,255,255,.3)" data-review-trigger="'+pid+'">Reviews</span>';
+  ratingDiv.innerHTML=html;
+}
+
+document.addEventListener('click',function(e){var t=e.target.closest('[data-review-trigger]');if(t){e.preventDefault();e.stopPropagation();openReviewModal(+t.dataset.reviewTrigger)}});
+
+/* ── Category Filter ── */
+var currentCat=<?= $active_cat ?>;
+function loadCategory(cid){
+  if(cid===currentCat)return;currentCat=cid;
+  document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.toggle('active',+p.dataset.cat===cid)});
+  var clearBtn=document.getElementById('clearFilter');if(clearBtn)clearBtn.classList.toggle('hidden',cid===0);
+  var grid=document.getElementById('productsGrid'),sh='';
+  for(var i=0;i<4;i++){sh+='<div class="rounded-2xl overflow-hidden" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05)"><div class="skel" style="height:240px"></div><div class="p-4"><div class="skel" style="height:12px;width:75%;margin-bottom:8px"></div><div class="skel" style="height:10px;width:100%;margin-bottom:6px"></div><div class="skel" style="height:10px;width:50%;margin-bottom:12px"></div><div class="skel" style="height:20px;width:90px;margin-bottom:14px"></div><div class="flex gap-2"><div class="skel" style="width:42px;height:42px;border-radius:14px"></div><div class="skel" style="flex:1;height:42px;border-radius:14px"></div></div></div></div>'}
+  grid.innerHTML=sh;
+  history.pushState({cat_id:cid},'','index.php'+(cid>0?'?cat_id='+cid:''));
+  document.getElementById('products').scrollIntoView({behavior:'smooth',block:'start'});
+  fetch('fetch_products.php?cat_id='+cid).then(function(r){return r.json()}).then(function(data){
+    if(data.empty){grid.innerHTML='<div class="sm:col-span-2 lg:col-span-4 text-center py-20"><div class="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.04)"><i class="fa-solid fa-box-open text-3xl" style="color:rgba(255,255,255,.1)"></i></div><h3 class="text-lg font-bold mb-2 text-white">No Products Found</h3><p class="text-sm mb-5" style="color:rgba(255,255,255,.3)">This category is empty.</p><button onclick="loadCategory(0)" class="glass-btn-dark inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer"><i class="fa-solid fa-arrow-left text-xs"></i> Browse All</button></div>'}
+    else{grid.innerHTML=data.html;var cards=grid.querySelectorAll('.pcard');cards.forEach(function(c,i){c.classList.add('rv','d'+((i%4)+1))});var obs=new IntersectionObserver(function(en,o){en.forEach(function(el){if(el.isIntersecting){el.target.classList.add('on');o.unobserve(el.target)}})},{threshold:.08});cards.forEach(function(c){obs.observe(c)})}
+  }).catch(function(){grid.innerHTML='<div class="sm:col-span-2 lg:col-span-4 text-center py-20"><p class="text-sm" style="color:#f87171">Failed to load products.</p></div>'});
+}
+window.addEventListener('popstate',function(e){var c=(e.state&&e.state.cat_id!==undefined)?e.state.cat_id:0;currentCat=-1;loadCategory(c)});
+
+/* ── Add to Cart ── */
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('[data-add-cart]');if(!btn)return;e.preventDefault();
+  var pid=btn.dataset.addCart,orig=btn.innerHTML;
+  btn.innerHTML='<i class="fa-solid fa-spinner spin text-xs"></i>';btn.style.pointerEvents='none';
+  var fd=new FormData();fd.append('product_id',pid);fd.append('quantity',1);
+  fetch('add_to_cart.php',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(data){
+    if(data.success){
+      btn.innerHTML='<i class="fa-solid fa-check text-xs"></i> Added';btn.classList.add('added');
+      var badge=document.getElementById('navCartBadge');if(badge){badge.textContent=data.cart_count;badge.classList.remove('badge-pop');void badge.offsetWidth;badge.classList.add('badge-pop')}
+      var mob=document.querySelector('.mob-badge');if(mob)mob.textContent=data.cart_count;
+      showToast('Added to cart!','success');
+      setTimeout(function(){btn.innerHTML=orig;btn.classList.remove('added');btn.style.pointerEvents=''},1500);
+    }else{btn.innerHTML='<i class="fa-solid fa-xmark text-xs"></i>';btn.style.background='rgba(239,68,68,.15)';btn.style.borderColor='rgba(239,68,68,.3)';btn.style.color='#f87171';showToast(data.message||'Failed.','error');setTimeout(function(){btn.innerHTML=orig;btn.style.background='';btn.style.borderColor='';btn.style.color='';btn.style.pointerEvents=''},1200)}
+  }).catch(function(){btn.innerHTML=orig;btn.style.pointerEvents='';showToast('Network error.','error')});
+});
+</script>
 </body>
 </html>
